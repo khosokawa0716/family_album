@@ -24,15 +24,23 @@ docker-compose restart frontend
 
 ## 直接起動（ローカル開発用）
 
-1. 依存パッケージのインストール
+1. Node.jsのバージョン確認（推奨: v18以上）
+   ```sh
+   node --version
+   npm --version
+   ```
+
+2. 依存パッケージのインストール
    ```sh
    npm install
    ```
-2. 開発サーバー起動
+
+3. 開発サーバー起動
    ```sh
    npm run dev
    ```
-3. ブラウザで http://localhost:3000 へアクセス
+
+4. ブラウザで http://localhost:3000 へアクセス
 
 ---
 

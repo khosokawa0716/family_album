@@ -26,13 +26,25 @@ docker-compose restart backend
 
 1. 依存パッケージのインストール
    ```sh
-   pip install -r requirements.txt
+   pip3 install -r requirements.txt
    ```
-2. 開発サーバー起動
+
+2. 環境変数の設定
+   `.env` ファイルを作成し、データベース接続情報を設定：
+   ```
+   DB_HOST=localhost
+   DB_USER=family_album_user
+   DB_PASSWORD=your_password
+   DB_NAME=family_album
+   DB_PORT=3306
+   ```
+
+3. 開発サーバー起動
    ```sh
-   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
    ```
-3. ブラウザで http://localhost:8000/docs へアクセス（APIドキュメント）
+
+4. ブラウザで http://localhost:8000/docs へアクセス（APIドキュメント）
 
 ---
 
