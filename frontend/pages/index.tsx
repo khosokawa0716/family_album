@@ -1,9 +1,15 @@
-import React from "react";
+import Head from "next/head";
 
 export default function Home() {
   return (
-    <main>
-      <h1>Family Album Frontend (Next.js + TypeScript)</h1>
-    </main>
+    <>
+      <Head>
+        <title>Family Album</title>
+        <meta name="description" content="家族のアルバムアプリ" />
+      </Head>
+      <main>
+        <h1>Welcome to Family Album</h1>
+      </main>
+    </>
   );
 }
