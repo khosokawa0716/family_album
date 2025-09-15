@@ -46,7 +46,7 @@ docker-compose restart db
 
 5. 初期化SQLの実行（もしあれば）
    ```sh
-   mysql -u family_album_user -p family_album < init.sql
+   mysql -u family_album_user -p family_album < db/00_init.sql
    ```
 
 ---
