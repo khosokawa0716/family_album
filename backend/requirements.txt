@@ -1,5 +1,7 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-PyMySQL
-python-dotenv
+fastapi==0.116.1
+uvicorn[standard]==0.23.1
+sqlalchemy==2.0.19
+PyMySQL==1.0.3
+python-dotenv==1.0.0
+pytest==8.4.2
+httpx==0.28.1
