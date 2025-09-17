@@ -1,6 +1,15 @@
 # Environment files
 .env
 *.env
+.env.local
+.env.*.local
+backend/.env
+db/.env
+
+# Security sensitive files
+*password*
+*secret*
+*credential*
 
 # Python
 __pycache__/
