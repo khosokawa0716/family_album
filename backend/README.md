@@ -1,9 +1,9 @@
 # テストの実行方法
 
-FastAPIバックエンドのテストを実行するには、`PYTHONPATH`を指定して以下のコマンドを実行してください。
+FastAPIバックエンドのテストを実行するには、以下のコマンドを実行してください。
 
 ```
-PYTHONPATH=. pytest tests
+python3 -m pytest tests/ -v
 ```
 
 これにより、`main.py`などのモジュールが正しくインポートされ、テストが実行できます。
