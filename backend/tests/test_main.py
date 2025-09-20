@@ -84,3 +84,103 @@ def test_create_user_failure(monkeypatch):
 
     # rollbackが呼ばれたことを確認
     mock_session.rollback.assert_called_once()
+
+def test_login_success(monkeypatch):
+    # パスワードハッシュ化のモック
+    from passlib.context import CryptContext
+    mock_pwd_context = MagicMock()
+    mock_pwd_context.verify.return_value = True
+    monkeypatch.setattr("main.pwd_context", mock_pwd_context)
+
+    # JWTエンコードのモック
+    monkeypatch.setattr("main.jwt.encode", lambda *args, **kwargs: "test_jwt_token")
+
+    # ユーザー検索のモック
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.user_name = "test_user"
+    mock_user.password = "hashed_password"
+    mock_user.email = "test@example.com"
+    mock_user.type = 0
+    mock_user.family_id = 1
+    mock_user.status = 1
+    mock_user.create_date = "2023-01-01T00:00:00"
+    mock_user.update_date = "2023-01-01T00:00:00"
+
+    monkeypatch.setattr("main.get_user_by_username", lambda username: mock_user)
+
+    client = TestClient(app)
+    login_data = {
+        "user_name": "test_user",
+        "password": "test_password"
+    }
+
+    response = client.post("/api/login", json=login_data)
+    assert response.status_code == 200
+
+    response_data = response.json()
+    assert response_data["access_token"] == "test_jwt_token"
+    assert response_data["token_type"] == "bearer"
+    assert response_data["user"]["user_name"] == "test_user"
+    assert response_data["user"]["id"] == 1
+
+def test_login_invalid_username(monkeypatch):
+    # ユーザーが見つからない場合のモック
+    monkeypatch.setattr("main.get_user_by_username", lambda username: None)
+
+    client = TestClient(app)
+    login_data = {
+        "user_name": "invalid_user",
+        "password": "test_password"
+    }
+
+    response = client.post("/api/login", json=login_data)
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Incorrect username or password"
+
+def test_login_invalid_password(monkeypatch):
+    # パスワード検証失敗のモック
+    from passlib.context import CryptContext
+    mock_pwd_context = MagicMock()
+    mock_pwd_context.verify.return_value = False
+    monkeypatch.setattr("main.pwd_context", mock_pwd_context)
+
+    # ユーザー検索のモック
+    mock_user = MagicMock()
+    mock_user.user_name = "test_user"
+    mock_user.password = "hashed_password"
+    monkeypatch.setattr("main.get_user_by_username", lambda username: mock_user)
+
+    client = TestClient(app)
+    login_data = {
+        "user_name": "test_user",
+        "password": "wrong_password"
+    }
+
+    response = client.post("/api/login", json=login_data)
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Incorrect username or password"
+
+def test_login_disabled_user(monkeypatch):
+    # パスワードハッシュ化のモック
+    from passlib.context import CryptContext
+    mock_pwd_context = MagicMock()
+    mock_pwd_context.verify.return_value = True
+    monkeypatch.setattr("main.pwd_context", mock_pwd_context)
+
+    # 無効ユーザーのモック
+    mock_user = MagicMock()
+    mock_user.user_name = "disabled_user"
+    mock_user.password = "hashed_password"
+    mock_user.status = 0  # 無効ステータス
+    monkeypatch.setattr("main.get_user_by_username", lambda username: mock_user)
+
+    client = TestClient(app)
+    login_data = {
+        "user_name": "disabled_user",
+        "password": "test_password"
+    }
+
+    response = client.post("/api/login", json=login_data)
+    assert response.status_code == 403
+    assert response.json()["detail"] == "User account is disabled"
