@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from database import db
 from models import User
 from schemas import UserCreate, UserResponse
 from auth import pwd_context
+from dependencies import get_current_user
 
 router = APIRouter(prefix="/api", tags=["users"])
 
@@ -26,3 +27,9 @@ def create_user(user: UserCreate):
     except Exception as e:
         db.session.rollback()
         raise HTTPException(status_code=400, detail=f"User creation failed: {str(e)}")
+
+@router.get("/users/me", response_model=UserResponse)
+def get_current_user_info(current_user: User = Depends(get_current_user)):
+    if current_user.status == 0:
+        raise HTTPException(status_code=403, detail="User account is disabled")
+    return current_user
