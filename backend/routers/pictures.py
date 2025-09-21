@@ -120,3 +120,43 @@ def get_pictures(
         offset=offset,
         has_more=has_more
     )
+
+
+@router.get("/pictures/{picture_id}", response_model=PictureResponse)
+def get_picture_detail(
+    picture_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    写真詳細取得API
+
+    指定されたIDの写真詳細情報を取得する。
+    家族スコープでのアクセス制御により、自分の家族の写真のみ取得可能。
+
+    Args:
+        picture_id: 取得する写真のID
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+
+    Returns:
+        PictureResponse: 写真詳細情報
+
+    Raises:
+        HTTPException:
+            - 404: 写真が見つからない、または他家族の写真
+            - 404: 削除済み写真(status=0)
+    """
+    # 家族スコープでの写真取得（削除済みは除外）
+    picture = db.query(Picture).filter(
+        and_(
+            Picture.id == picture_id,
+            Picture.family_id == current_user.family_id,
+            Picture.status == 1
+        )
+    ).first()
+
+    if not picture:
+        raise HTTPException(status_code=404, detail="Picture not found")
+
+    return picture
