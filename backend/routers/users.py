@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
 from database import db
-from models import User
+from models import User, OperationLog
 from schemas import UserCreate, UserUpdate, UserResponse
 from auth import pwd_context
 from dependencies import get_current_user
 from typing import List
 from sqlalchemy.exc import IntegrityError
+import json
 
 router = APIRouter(prefix="/api", tags=["users"])
 
@@ -107,3 +108,56 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
     if current_user.status == 0:
         raise HTTPException(status_code=403, detail="User account is disabled")
     return current_user
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: int, current_user: User = Depends(get_current_user)):
+    # ユーザーが無効化されている場合のチェック
+    if current_user.status == 0:
+        raise HTTPException(status_code=403, detail="User account is disabled")
+
+    # 管理者権限チェック (type = 10 が管理者)
+    if current_user.type != 10:
+        raise HTTPException(status_code=403, detail="Insufficient permissions. Admin access required.")
+
+    # 削除対象ユーザーを取得
+    target_user = db.session.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 既に削除済み（status=0）の場合
+    if target_user.status == 0:
+        raise HTTPException(status_code=409, detail="User is already deleted")
+
+    # 削除前のユーザー情報をスナップショットとして保存
+    user_snapshot = {
+        "user_name": target_user.user_name,
+        "email": target_user.email,
+        "type": target_user.type,
+        "family_id": target_user.family_id,
+        "status": target_user.status
+    }
+
+    try:
+        # 論理削除: statusを0に変更
+        target_user.status = 0
+
+        # 操作ログを記録
+        operation_log = OperationLog(
+            user_id=current_user.id,
+            operation="DELETE",
+            target_type="user",
+            target_id=user_id,
+            detail=json.dumps(user_snapshot)
+        )
+        db.session.add(operation_log)
+
+        db.session.commit()
+
+        return {
+            "message": "User deleted successfully",
+            "deleted_user_id": user_id
+        }
+
+    except Exception as e:
+        db.session.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete user: {str(e)}")

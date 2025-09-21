@@ -1,8 +1,16 @@
 from fastapi import FastAPI
+from fastapi.security import HTTPBearer
 from database import Base, engine
 from routers import health, auth, users
 
-app = FastAPI()
+app = FastAPI(
+    title="Family Album API",
+    description="Family Album Backend API",
+    version="1.0.0"
+)
+
+# Swagger UI用のセキュリティスキーム設定
+security = HTTPBearer()
 
 Base.metadata.create_all(bind=engine)
 
