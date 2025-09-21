@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.security import HTTPBearer
 from database import Base, engine
-from routers import health, auth, users
+from routers import health, auth, users, pictures
 
 app = FastAPI(
     title="Family Album API",
@@ -17,3 +17,4 @@ Base.metadata.create_all(bind=engine)
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(pictures.router, prefix="/api")

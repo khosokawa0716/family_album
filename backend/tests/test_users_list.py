@@ -223,7 +223,7 @@ def test_get_users_user_not_found(client, monkeypatch):
     assert response.json()["detail"] == "Could not validate credentials"
 
 
-def test_get_users_response_format(client, monkeypatch):
+def test_get_users_response_format(client):
     """レスポンス形式の検証テスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -260,22 +260,24 @@ def test_get_users_response_format(client, monkeypatch):
         return mock_admin_user
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.all.return_value = mock_users
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # FastAPIアプリの依存性注入をオーバーライド
     from main import app
     from dependencies import get_current_user
+    from routers.users import get_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
 
-    headers = {"Authorization": "Bearer admin_token"}
-    response = client.get("/api/users", headers=headers)
-
-    # テスト後にオーバーライドをクリア
-    app.dependency_overrides.clear()
+    try:
+        headers = {"Authorization": "Bearer admin_token"}
+        response = client.get("/api/users", headers=headers)
+    finally:
+        # テスト後にオーバーライドをクリア
+        app.dependency_overrides.clear()
 
     assert response.status_code == 200
     response_data = response.json()
@@ -294,7 +296,7 @@ def test_get_users_response_format(client, monkeypatch):
         assert "update_date" in user
 
 
-def test_get_users_no_password_in_response(client, monkeypatch):
+def test_get_users_no_password_in_response(client):
     """パスワード情報の非表示確認テスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -320,22 +322,24 @@ def test_get_users_no_password_in_response(client, monkeypatch):
         return mock_admin_user
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.all.return_value = [mock_user]
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # FastAPIアプリの依存性注入をオーバーライド
     from main import app
     from dependencies import get_current_user
+    from routers.users import get_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
 
-    headers = {"Authorization": "Bearer admin_token"}
-    response = client.get("/api/users", headers=headers)
-
-    # テスト後にオーバーライドをクリア
-    app.dependency_overrides.clear()
+    try:
+        headers = {"Authorization": "Bearer admin_token"}
+        response = client.get("/api/users", headers=headers)
+    finally:
+        # テスト後にオーバーライドをクリア
+        app.dependency_overrides.clear()
 
     assert response.status_code == 200
     response_data = response.json()
@@ -345,7 +349,7 @@ def test_get_users_no_password_in_response(client, monkeypatch):
         assert "password" not in user
 
 
-def test_get_users_includes_disabled_users(client, monkeypatch):
+def test_get_users_includes_disabled_users(client):
     """無効化ユーザーも含まれることの確認テスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -382,16 +386,17 @@ def test_get_users_includes_disabled_users(client, monkeypatch):
         return mock_admin_user
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.all.return_value = mock_users
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # FastAPIアプリの依存性注入をオーバーライド
     from main import app
     from dependencies import get_current_user
+    from routers.users import get_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
 
     headers = {"Authorization": "Bearer admin_token"}
     response = client.get("/api/users", headers=headers)

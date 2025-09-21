@@ -114,9 +114,12 @@ UserUpdateスキーマ（新規作成予定）:
 
 from unittest.mock import MagicMock
 import pytest
+from main import app
+from database import get_db
+from dependencies import get_current_user
 
 
-def test_edit_user_success_as_admin(client, monkeypatch):
+def test_edit_user_success_as_admin(client):
     """管理者による他ユーザー編集成功テスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -137,19 +140,17 @@ def test_edit_user_success_as_admin(client, monkeypatch):
     mock_target_user.update_date = "2023-01-01T00:00:00"
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_target_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_admin_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer admin_token"}
@@ -168,7 +169,7 @@ def test_edit_user_success_as_admin(client, monkeypatch):
     assert "password" not in response_data  # パスワードが含まれていないことを確認
 
 
-def test_edit_user_success_self(client, monkeypatch):
+def test_edit_user_success_self(client):
     """一般ユーザーによる自分自身編集成功テスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -182,19 +183,17 @@ def test_edit_user_success_self(client, monkeypatch):
     mock_user.update_date = "2023-01-01T00:00:00"
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer user_token"}
@@ -213,7 +212,7 @@ def test_edit_user_success_self(client, monkeypatch):
     assert "password" not in response_data
 
 
-def test_edit_user_other_user_forbidden(client, monkeypatch):
+def test_edit_user_other_user_forbidden(client):
     """一般ユーザーが他ユーザー編集を試行して失敗するテスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -230,19 +229,17 @@ def test_edit_user_other_user_forbidden(client, monkeypatch):
     mock_other_user.status = 1
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_other_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer user_token"}
@@ -258,7 +255,7 @@ def test_edit_user_other_user_forbidden(client, monkeypatch):
     assert response.json()["detail"] == "Insufficient permissions. You can only edit your own profile."
 
 
-def test_edit_user_nonexistent_id(client, monkeypatch):
+def test_edit_user_nonexistent_id(client):
     """存在しないユーザーIDでの失敗テスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -267,19 +264,17 @@ def test_edit_user_nonexistent_id(client, monkeypatch):
     mock_admin_user.status = 1
 
     # データベースセッションのモック（ユーザーが見つからない）
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = None
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_admin_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer admin_token"}
@@ -306,7 +301,7 @@ def test_edit_user_no_token(client):
     assert response.json()["detail"] == "Not authenticated"
 
 
-def test_edit_user_duplicate_username(client, monkeypatch):
+def test_edit_user_duplicate_username(client):
     """重複ユーザー名での409エラーテスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -326,25 +321,22 @@ def test_edit_user_duplicate_username(client, monkeypatch):
     # データベースセッションのモック（IntegrityErrorを発生させる）
     from sqlalchemy.exc import IntegrityError
 
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_target_user
-    mock_session.query.return_value = mock_query
+    mock_db.query.return_value = mock_query
 
     # IntegrityErrorをモック
     integrity_error = IntegrityError("statement", "params", "duplicate key value violates unique constraint user_name")
     integrity_error.orig = Exception("duplicate key value violates unique constraint user_name")
-    mock_session.commit.side_effect = integrity_error
-
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.commit.side_effect = integrity_error
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_admin_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer admin_token"}
@@ -360,7 +352,7 @@ def test_edit_user_duplicate_username(client, monkeypatch):
     assert response.json()["detail"] == "Username already exists"
 
 
-def test_edit_user_duplicate_email(client, monkeypatch):
+def test_edit_user_duplicate_email(client):
     """重複メールアドレスでの409エラーテスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -380,25 +372,22 @@ def test_edit_user_duplicate_email(client, monkeypatch):
     # データベースセッションのモック（IntegrityErrorを発生させる）
     from sqlalchemy.exc import IntegrityError
 
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_target_user
-    mock_session.query.return_value = mock_query
+    mock_db.query.return_value = mock_query
 
     # IntegrityErrorをモック
     integrity_error = IntegrityError("statement", "params", "duplicate key value violates unique constraint email")
     integrity_error.orig = Exception("duplicate key value violates unique constraint email")
-    mock_session.commit.side_effect = integrity_error
-
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.commit.side_effect = integrity_error
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_admin_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer admin_token"}
@@ -414,7 +403,7 @@ def test_edit_user_duplicate_email(client, monkeypatch):
     assert response.json()["detail"] == "Email already exists"
 
 
-def test_edit_user_invalid_email_format(client, monkeypatch):
+def test_edit_user_invalid_email_format(client):
     """無効なメール形式での400エラーテスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -424,19 +413,16 @@ def test_edit_user_invalid_email_format(client, monkeypatch):
     mock_user.status = 1
 
     # 編集対象ユーザーのモック（自分自身）
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer token"}
@@ -451,7 +437,7 @@ def test_edit_user_invalid_email_format(client, monkeypatch):
     assert response.status_code == 422  # Pydanticのバリデーションエラー
 
 
-def test_edit_user_password_too_short(client, monkeypatch):
+def test_edit_user_password_too_short(client):
     """パスワード8文字未満での400エラーテスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -461,19 +447,16 @@ def test_edit_user_password_too_short(client, monkeypatch):
     mock_user.status = 1
 
     # 編集対象ユーザーのモック（自分自身）
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer token"}
@@ -489,7 +472,7 @@ def test_edit_user_password_too_short(client, monkeypatch):
     assert "Password must be at least 8 characters long" in str(response.json())
 
 
-def test_edit_user_invalid_type_value(client, monkeypatch):
+def test_edit_user_invalid_type_value(client):
     """不正なtype値での400エラーテスト"""
     # 管理者ユーザーのモック（type変更には管理者権限が必要）
     mock_admin_user = MagicMock()
@@ -505,19 +488,16 @@ def test_edit_user_invalid_type_value(client, monkeypatch):
     mock_target_user.type = 0
     mock_target_user.status = 1
 
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_target_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_admin_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer token"}
@@ -533,7 +513,7 @@ def test_edit_user_invalid_type_value(client, monkeypatch):
     assert "Type must be 0 (regular user) or 10 (admin)" in str(response.json())
 
 
-def test_edit_user_invalid_family_id(client, monkeypatch):
+def test_edit_user_invalid_family_id(client):
     """不正なfamily_id値での400エラーテスト"""
     # 管理者ユーザーのモック（family_id変更には管理者権限が必要）
     mock_admin_user = MagicMock()
@@ -549,19 +529,16 @@ def test_edit_user_invalid_family_id(client, monkeypatch):
     mock_target_user.type = 0
     mock_target_user.status = 1
 
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_target_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_admin_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer token"}
@@ -577,7 +554,7 @@ def test_edit_user_invalid_family_id(client, monkeypatch):
     assert "Family ID must be a positive integer" in str(response.json())
 
 
-def test_edit_user_invalid_status_value(client, monkeypatch):
+def test_edit_user_invalid_status_value(client):
     """不正なstatus値での400エラーテスト"""
     # 管理者ユーザーのモック（status変更には管理者権限が必要）
     mock_admin_user = MagicMock()
@@ -593,19 +570,16 @@ def test_edit_user_invalid_status_value(client, monkeypatch):
     mock_target_user.type = 0
     mock_target_user.status = 1
 
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_target_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_admin_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer token"}
@@ -621,7 +595,7 @@ def test_edit_user_invalid_status_value(client, monkeypatch):
     assert "Status must be 0 (disabled) or 1 (enabled)" in str(response.json())
 
 
-def test_edit_user_empty_username(client, monkeypatch):
+def test_edit_user_empty_username(client):
     """空文字user_nameでの400エラーテスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -631,19 +605,16 @@ def test_edit_user_empty_username(client, monkeypatch):
     mock_user.status = 1
 
     # 編集対象ユーザーのモック（自分自身）
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer token"}
@@ -659,7 +630,7 @@ def test_edit_user_empty_username(client, monkeypatch):
     assert "Username cannot be empty" in str(response.json())
 
 
-def test_edit_user_regular_user_type_change_forbidden(client, monkeypatch):
+def test_edit_user_regular_user_type_change_forbidden(client):
     """一般ユーザーのtype変更禁止テスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -669,19 +640,16 @@ def test_edit_user_regular_user_type_change_forbidden(client, monkeypatch):
     mock_user.status = 1
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer user_token"}
@@ -697,7 +665,7 @@ def test_edit_user_regular_user_type_change_forbidden(client, monkeypatch):
     assert response.json()["detail"] == "Insufficient permissions. You cannot change user type."
 
 
-def test_edit_user_regular_user_family_id_change_forbidden(client, monkeypatch):
+def test_edit_user_regular_user_family_id_change_forbidden(client):
     """一般ユーザーのfamily_id変更禁止テスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -707,19 +675,16 @@ def test_edit_user_regular_user_family_id_change_forbidden(client, monkeypatch):
     mock_user.status = 1
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer user_token"}
@@ -735,7 +700,7 @@ def test_edit_user_regular_user_family_id_change_forbidden(client, monkeypatch):
     assert response.json()["detail"] == "Insufficient permissions. You cannot change family ID."
 
 
-def test_edit_user_regular_user_status_change_forbidden(client, monkeypatch):
+def test_edit_user_regular_user_status_change_forbidden(client):
     """一般ユーザーのstatus変更禁止テスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -745,19 +710,16 @@ def test_edit_user_regular_user_status_change_forbidden(client, monkeypatch):
     mock_user.status = 1
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer user_token"}
@@ -773,7 +735,7 @@ def test_edit_user_regular_user_status_change_forbidden(client, monkeypatch):
     assert response.json()["detail"] == "Insufficient permissions. You cannot change user status."
 
 
-def test_edit_user_admin_privilege_fields_success(client, monkeypatch):
+def test_edit_user_admin_privilege_fields_success(client):
     """管理者による権限フィールド変更成功テスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -794,19 +756,16 @@ def test_edit_user_admin_privilege_fields_success(client, monkeypatch):
     mock_target_user.update_date = "2023-01-01T00:00:00"
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_target_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_admin_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer admin_token"}
@@ -826,7 +785,7 @@ def test_edit_user_admin_privilege_fields_success(client, monkeypatch):
     assert "password" not in response_data  # パスワードが含まれていないことを確認
 
 
-def test_edit_user_partial_update(client, monkeypatch):
+def test_edit_user_partial_update(client):
     """部分更新の動作確認テスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -846,19 +805,16 @@ def test_edit_user_partial_update(client, monkeypatch):
     mock_target_user.update_date = "2023-01-01T00:00:00"
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_target_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_admin_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer admin_token"}
@@ -877,7 +833,7 @@ def test_edit_user_partial_update(client, monkeypatch):
     assert "password" not in response_data
 
 
-def test_edit_user_password_change_and_hash(client, monkeypatch):
+def test_edit_user_password_change_and_hash(client):
     """パスワード変更とハッシュ化確認テスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -891,46 +847,44 @@ def test_edit_user_password_change_and_hash(client, monkeypatch):
     mock_user.update_date = "2023-01-01T00:00:00"
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # パスワードハッシュ化のモック確認
-    from auth import pwd_context
-    original_hash = pwd_context.hash
+    from unittest.mock import patch
     hash_called = []
     def mock_hash(password):
         hash_called.append(password)
-        return original_hash(password)
-    monkeypatch.setattr("auth.pwd_context.hash", mock_hash)
+        return "hashed_" + password  # ハッシュの代わりにプレフィックスを付ける
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
-    headers = {"Authorization": "Bearer user_token"}
-    update_data = {
-        "password": "newpassword123"
-    }
-    response = client.patch("/api/users/2", json=update_data, headers=headers)
+    # パスワードハッシュ機能をモック
+    with patch('auth.pwd_context.hash', side_effect=mock_hash):
+        headers = {"Authorization": "Bearer user_token"}
+        update_data = {
+            "password": "newpassword123"
+        }
+        response = client.patch("/api/users/2", json=update_data, headers=headers)
 
-    # テスト後にオーバーライドをクリア
-    app.dependency_overrides.clear()
+        # テスト後にオーバーライドをクリア
+        app.dependency_overrides.clear()
 
-    assert response.status_code == 200
-    # パスワードがハッシュ化されたことを確認
-    assert len(hash_called) == 1
-    assert hash_called[0] == "newpassword123"
+        assert response.status_code == 200
+        # パスワードがハッシュ化されたことを確認
+        assert len(hash_called) == 1
+        assert hash_called[0] == "newpassword123"
 
 
-def test_edit_user_password_not_provided(client, monkeypatch):
+def test_edit_user_password_not_provided(client):
     """パスワード未提供時は変更しないテスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -944,11 +898,10 @@ def test_edit_user_password_not_provided(client, monkeypatch):
     mock_user.update_date = "2023-01-01T00:00:00"
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # パスワードハッシュ化が呼ばれないことを確認
     from auth import pwd_context
@@ -957,15 +910,13 @@ def test_edit_user_password_not_provided(client, monkeypatch):
     def mock_hash(password):
         hash_called.append(password)
         return original_hash(password)
-    monkeypatch.setattr("auth.pwd_context.hash", mock_hash)
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer user_token"}
@@ -996,8 +947,6 @@ def test_edit_user_disabled_user(client):
         return mock_disabled_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer disabled_token"}
@@ -1026,8 +975,6 @@ def test_edit_user_invalid_id_format(client):
         return mock_admin_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer admin_token"}
@@ -1043,7 +990,7 @@ def test_edit_user_invalid_id_format(client):
     assert response.status_code == 422  # FastAPIのパス検証エラー
 
 
-def test_edit_user_empty_body(client, monkeypatch):
+def test_edit_user_empty_body(client):
     """空のリクエストボディでの処理テスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -1057,19 +1004,16 @@ def test_edit_user_empty_body(client, monkeypatch):
     mock_user.update_date = "2023-01-01T00:00:00"
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
-
+    mock_db.query.return_value = mock_query
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
         return mock_user
 
     # FastAPIアプリの依存性注入をオーバーライド
-    from main import app
-    from dependencies import get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer user_token"}

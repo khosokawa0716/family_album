@@ -36,5 +36,17 @@ class Database:
     def close(self):
         self.session.close()
 
-# インスタンスを作成
+# インスタンスを作成（既存コード互換性のため残す）
 db = Database()
+
+# FastAPI依存注入用の関数（推奨方式）
+def get_db():
+    """
+    データベースセッションの依存注入関数
+    リクエストごとに新しいセッションを作成し、終了時に自動的にクローズ
+    """
+    database = SessionLocal()
+    try:
+        yield database
+    finally:
+        database.close()

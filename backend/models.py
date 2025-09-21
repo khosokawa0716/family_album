@@ -27,3 +27,36 @@ class OperationLog(Base):
     target_id = Column(INTEGER(unsigned=True))
     detail = Column(Text)
     create_date = Column(DateTime, nullable=False, server_default=func.now())
+
+
+class Category(Base):
+    __tablename__ = 'categories'
+
+    id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
+    family_id = Column(INTEGER(unsigned=True), nullable=False)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    status = Column(SmallInteger, nullable=False, default=1)
+    create_date = Column(DateTime, nullable=False, server_default=func.now())
+    update_date = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+
+class Picture(Base):
+    __tablename__ = 'pictures'
+
+    id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
+    family_id = Column(INTEGER(unsigned=True), nullable=False)
+    uploaded_by = Column(INTEGER(unsigned=True), ForeignKey('users.id'), nullable=False)
+    title = Column(String(255))
+    description = Column(Text)
+    file_path = Column(String(500), nullable=False)
+    thumbnail_path = Column(String(500))
+    file_size = Column(INTEGER(unsigned=True))
+    mime_type = Column(String(100))
+    width = Column(INTEGER(unsigned=True))
+    height = Column(INTEGER(unsigned=True))
+    taken_date = Column(DateTime)
+    category_id = Column(INTEGER(unsigned=True), ForeignKey('categories.id'))
+    status = Column(SmallInteger, nullable=False, default=1)
+    create_date = Column(DateTime, nullable=False, server_default=func.now())
+    update_date = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

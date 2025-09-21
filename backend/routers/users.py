@@ -1,17 +1,18 @@
 from fastapi import APIRouter, HTTPException, Depends
-from database import db
+from database import get_db
 from models import User, OperationLog
 from schemas import UserCreate, UserUpdate, UserResponse
 from auth import pwd_context
 from dependencies import get_current_user
 from typing import List
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 import json
 
 router = APIRouter(prefix="/api", tags=["users"])
 
 @router.post("/users", response_model=UserResponse)
-def create_user(user: UserCreate):
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
     hashed_password = pwd_context.hash(user.password)
 
     db_user = User(
@@ -23,16 +24,16 @@ def create_user(user: UserCreate):
     )
 
     try:
-        db.session.add(db_user)
-        db.session.commit()
-        db.session.refresh(db_user)
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
         return db_user
     except Exception as e:
-        db.session.rollback()
+        db.rollback()
         raise HTTPException(status_code=400, detail=f"User creation failed: {str(e)}")
 
 @router.get("/users", response_model=List[UserResponse])
-def get_users(current_user: User = Depends(get_current_user)):
+def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # ユーザーが無効化されている場合のチェック
     if current_user.status == 0:
         raise HTTPException(status_code=403, detail="User account is disabled")
@@ -43,19 +44,19 @@ def get_users(current_user: User = Depends(get_current_user)):
 
     # 全ユーザーを取得（無効化されたユーザーも含む）
     try:
-        users = db.session.query(User).all()
+        users = db.query(User).all()
         return users
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve users: {str(e)}")
 
 @router.patch("/users/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, user_update: UserUpdate, current_user: User = Depends(get_current_user)):
+def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # ユーザーが無効化されている場合のチェック
     if current_user.status == 0:
         raise HTTPException(status_code=403, detail="User account is disabled")
 
     # 編集対象ユーザーを取得
-    target_user = db.session.query(User).filter(User.id == user_id).first()
+    target_user = db.query(User).filter(User.id == user_id).first()
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -76,7 +77,7 @@ def update_user(user_id: int, user_update: UserUpdate, current_user: User = Depe
             raise HTTPException(status_code=403, detail="Insufficient permissions. You cannot change user status.")
 
     # フィールドの更新（提供されたフィールドのみ）
-    update_data = user_update.dict(exclude_unset=True)
+    update_data = user_update.model_dump(exclude_unset=True)
 
     try:
         for field, value in update_data.items():
@@ -86,12 +87,12 @@ def update_user(user_id: int, user_update: UserUpdate, current_user: User = Depe
             else:
                 setattr(target_user, field, value)
 
-        db.session.commit()
-        db.session.refresh(target_user)
+        db.commit()
+        db.refresh(target_user)
         return target_user
 
     except IntegrityError as e:
-        db.session.rollback()
+        db.rollback()
         error_msg = str(e.orig)
         if "user_name" in error_msg:
             raise HTTPException(status_code=409, detail="Username already exists")
@@ -100,7 +101,7 @@ def update_user(user_id: int, user_update: UserUpdate, current_user: User = Depe
         else:
             raise HTTPException(status_code=409, detail="Data integrity violation")
     except Exception as e:
-        db.session.rollback()
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
 
 @router.get("/users/me", response_model=UserResponse)
@@ -110,7 +111,7 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
     return current_user
 
 @router.delete("/users/{user_id}")
-def delete_user(user_id: int, current_user: User = Depends(get_current_user)):
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # ユーザーが無効化されている場合のチェック
     if current_user.status == 0:
         raise HTTPException(status_code=403, detail="User account is disabled")
@@ -120,7 +121,7 @@ def delete_user(user_id: int, current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Insufficient permissions. Admin access required.")
 
     # 削除対象ユーザーを取得
-    target_user = db.session.query(User).filter(User.id == user_id).first()
+    target_user = db.query(User).filter(User.id == user_id).first()
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -149,9 +150,9 @@ def delete_user(user_id: int, current_user: User = Depends(get_current_user)):
             target_id=user_id,
             detail=json.dumps(user_snapshot)
         )
-        db.session.add(operation_log)
+        db.add(operation_log)
 
-        db.session.commit()
+        db.commit()
 
         return {
             "message": "User deleted successfully",
@@ -159,5 +160,5 @@ def delete_user(user_id: int, current_user: User = Depends(get_current_user)):
         }
 
     except Exception as e:
-        db.session.rollback()
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete user: {str(e)}")

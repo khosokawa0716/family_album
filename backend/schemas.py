@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -17,19 +17,22 @@ class UserUpdate(BaseModel):
     family_id: Optional[int] = None
     status: Optional[int] = None
 
-    @validator('user_name')
+    @field_validator('user_name')
+    @classmethod
     def validate_user_name(cls, v):
         if v is not None and len(v.strip()) == 0:
             raise ValueError('Username cannot be empty')
         return v
 
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         if v is not None and len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
         return v
 
-    @validator('email')
+    @field_validator('email')
+    @classmethod
     def validate_email(cls, v):
         if v is not None and v.strip() == "":
             return None  # 空文字はNoneに変換
@@ -41,19 +44,22 @@ class UserUpdate(BaseModel):
                 raise ValueError('Invalid email format')
         return v
 
-    @validator('type')
+    @field_validator('type')
+    @classmethod
     def validate_type(cls, v):
         if v is not None and v not in [0, 10]:
             raise ValueError('Type must be 0 (regular user) or 10 (admin)')
         return v
 
-    @validator('family_id')
+    @field_validator('family_id')
+    @classmethod
     def validate_family_id(cls, v):
         if v is not None and v <= 0:
             raise ValueError('Family ID must be a positive integer')
         return v
 
-    @validator('status')
+    @field_validator('status')
+    @classmethod
     def validate_status(cls, v):
         if v is not None and v not in [0, 1]:
             raise ValueError('Status must be 0 (disabled) or 1 (enabled)')
@@ -69,8 +75,7 @@ class UserResponse(BaseModel):
     create_date: datetime
     update_date: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class LoginRequest(BaseModel):
     user_name: str
@@ -83,3 +88,44 @@ class LoginResponse(BaseModel):
 
 class LogoutResponse(BaseModel):
     message: str
+
+
+class CategoryResponse(BaseModel):
+    id: int
+    family_id: int
+    name: str
+    description: Optional[str]
+    status: int
+    create_date: datetime
+    update_date: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PictureResponse(BaseModel):
+    id: int
+    family_id: int
+    uploaded_by: int
+    title: Optional[str]
+    description: Optional[str]
+    file_path: str
+    thumbnail_path: Optional[str]
+    file_size: Optional[int]
+    mime_type: Optional[str]
+    width: Optional[int]
+    height: Optional[int]
+    taken_date: Optional[datetime]
+    category_id: Optional[int]
+    status: int
+    create_date: datetime
+    update_date: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PictureListResponse(BaseModel):
+    pictures: list[PictureResponse]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool

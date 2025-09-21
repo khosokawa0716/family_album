@@ -112,11 +112,10 @@ def test_delete_user_success_as_admin(client, monkeypatch):
     mock_target_user.status = 1
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_target_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # OperationLogクラスをモック
     mock_operation_log_class = MagicMock()
@@ -129,7 +128,9 @@ def test_delete_user_success_as_admin(client, monkeypatch):
     # FastAPIアプリの依存性注入をオーバーライド
     from main import app
     from dependencies import get_current_user
+    from database import get_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
 
     headers = {"Authorization": "Bearer admin_token"}
     response = client.delete("/api/users/2", headers=headers)
@@ -146,7 +147,7 @@ def test_delete_user_success_as_admin(client, monkeypatch):
     assert mock_target_user.status == 0
 
     # セッションのコミットが呼ばれたことを確認
-    mock_session.commit.assert_called_once()
+    mock_db.commit.assert_called_once()
 
 
 def test_delete_user_success_self_admin(client, monkeypatch):
@@ -159,11 +160,10 @@ def test_delete_user_success_self_admin(client, monkeypatch):
     mock_admin_user.status = 1
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_admin_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # OperationLogクラスをモック
     mock_operation_log_class = MagicMock()
@@ -181,7 +181,9 @@ def test_delete_user_success_self_admin(client, monkeypatch):
     # FastAPIアプリの依存性注入をオーバーライド
     from main import app
     from dependencies import get_current_user
+    from database import get_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
 
     headers = {"Authorization": "Bearer admin_token"}
     response = client.delete("/api/users/1", headers=headers)  # 自分自身を削除
@@ -218,7 +220,7 @@ def test_delete_user_expired_token(client):
     assert response.json()["detail"] == "Could not validate credentials"
 
 
-def test_delete_user_regular_user_forbidden(client, monkeypatch):
+def test_delete_user_regular_user_forbidden(client):
     """一般ユーザーでの削除試行失敗テスト"""
     # 一般ユーザーのモック
     mock_user = MagicMock()
@@ -274,7 +276,7 @@ def test_delete_user_disabled_admin(client):
     assert response.json()["detail"] == "User account is disabled"
 
 
-def test_delete_user_nonexistent_id(client, monkeypatch):
+def test_delete_user_nonexistent_id(client):
     """存在しないユーザーIDでの削除失敗テスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -283,11 +285,10 @@ def test_delete_user_nonexistent_id(client, monkeypatch):
     mock_admin_user.status = 1
 
     # データベースセッションのモック（ユーザーが見つからない）
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = None
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
@@ -296,7 +297,9 @@ def test_delete_user_nonexistent_id(client, monkeypatch):
     # FastAPIアプリの依存性注入をオーバーライド
     from main import app
     from dependencies import get_current_user
+    from database import get_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
 
     headers = {"Authorization": "Bearer admin_token"}
     response = client.delete("/api/users/99999", headers=headers)  # 存在しないID
@@ -335,7 +338,7 @@ def test_delete_user_invalid_id_format(client):
     assert response.status_code == 422  # FastAPIのパス検証エラー
 
 
-def test_delete_user_already_deleted(client, monkeypatch):
+def test_delete_user_already_deleted(client):
     """既に削除済みユーザーの削除試行テスト"""
     # 管理者ユーザーのモック
     mock_admin_user = MagicMock()
@@ -350,11 +353,10 @@ def test_delete_user_already_deleted(client, monkeypatch):
     mock_deleted_user.status = 0  # 既に削除済み
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_deleted_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
@@ -363,7 +365,9 @@ def test_delete_user_already_deleted(client, monkeypatch):
     # FastAPIアプリの依存性注入をオーバーライド
     from main import app
     from dependencies import get_current_user
+    from database import get_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
 
     headers = {"Authorization": "Bearer admin_token"}
     response = client.delete("/api/users/2", headers=headers)
@@ -401,11 +405,10 @@ def test_delete_user_response_format(client, monkeypatch):
     mock_target_user.status = 1
 
     # データベースセッションのモック
-    mock_session = MagicMock()
+    mock_db = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = mock_target_user
-    mock_session.query.return_value = mock_query
-    monkeypatch.setattr("routers.users.db.session", mock_session)
+    mock_db.query.return_value = mock_query
 
     # OperationLogクラスをモック
     mock_operation_log_class = MagicMock()
@@ -418,7 +421,9 @@ def test_delete_user_response_format(client, monkeypatch):
     # FastAPIアプリの依存性注入をオーバーライド
     from main import app
     from dependencies import get_current_user
+    from database import get_db
     app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
 
     headers = {"Authorization": "Bearer admin_token"}
     response = client.delete("/api/users/2", headers=headers)

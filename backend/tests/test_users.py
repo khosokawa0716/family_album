@@ -1,56 +1,73 @@
 from unittest.mock import MagicMock
+from main import app
 
-def test_create_user_success(client, mock_db_session, monkeypatch):
-    mock_user = MagicMock()
-    mock_user.id = 1
-    mock_user.user_name = "test_user"
-    mock_user.email = "test@example.com"
-    mock_user.type = 0
-    mock_user.family_id = 1
-    mock_user.status = 1
-    mock_user.create_date = "2023-01-01T00:00:00"
-    mock_user.update_date = "2023-01-01T00:00:00"
-
-    mock_db_session.add.return_value = None
-    mock_db_session.commit.return_value = None
-    mock_db_session.refresh.return_value = None
-
+def test_create_user_success(client):
+    from datetime import datetime
     from models import User
-    monkeypatch.setattr("routers.users.User", lambda **kwargs: mock_user)
 
-    test_data = {
-        "user_name": "test_user",
-        "password": "test_password",
-        "email": "test@example.com",
-        "type": 0,
-        "family_id": 1
-    }
+    mock_db = MagicMock()
+    mock_db.add.return_value = None
+    mock_db.commit.return_value = None
 
-    response = client.post("/api/users", json=test_data)
-    assert response.status_code == 200
+    # refresh をモック化してユーザーオブジェクトに必要な属性を設定
+    def mock_refresh(user):
+        user.id = 1
+        user.create_date = datetime.now()
+        user.update_date = datetime.now()
+        user.status = 1
 
-    mock_db_session.add.assert_called_once()
-    mock_db_session.commit.assert_called_once()
-    mock_db_session.refresh.assert_called_once()
+    mock_db.refresh.side_effect = mock_refresh
 
-def test_create_user_failure(client, mock_db_session, monkeypatch):
-    mock_db_session.add.side_effect = Exception("Database error")
-    mock_db_session.rollback.return_value = None
+    # FastAPIの依存注入をオーバーライド
+    from routers.users import get_db
+    app.dependency_overrides[get_db] = lambda: mock_db
 
-    mock_user = MagicMock()
-    from models import User
-    monkeypatch.setattr("routers.users.User", lambda **kwargs: mock_user)
+    try:
+        test_data = {
+            "user_name": "test_user",
+            "password": "test_password",
+            "email": "test@example.com",
+            "type": 0,
+            "family_id": 1
+        }
 
-    test_data = {
-        "user_name": "test_user",
-        "password": "test_password",
-        "email": "test@example.com",
-        "type": 0,
-        "family_id": 1
-    }
+        response = client.post("/api/users", json=test_data)
+        assert response.status_code == 200
 
-    response = client.post("/api/users", json=test_data)
-    assert response.status_code == 400
-    assert "User creation failed" in response.json()["detail"]
+        response_data = response.json()
+        assert response_data["user_name"] == "test_user"
+        assert response_data["email"] == "test@example.com"
+        assert response_data["type"] == 0
+        assert response_data["family_id"] == 1
 
-    mock_db_session.rollback.assert_called_once()
+        mock_db.add.assert_called_once()
+        mock_db.commit.assert_called_once()
+        mock_db.refresh.assert_called_once()
+    finally:
+        app.dependency_overrides.clear()
+
+def test_create_user_failure(client):
+    mock_db = MagicMock()
+    mock_db.add.side_effect = Exception("Database error")
+    mock_db.rollback.return_value = None
+
+    # FastAPIの依存注入をオーバーライド
+    from routers.users import get_db
+    app.dependency_overrides[get_db] = lambda: mock_db
+
+    try:
+        test_data = {
+            "user_name": "test_user",
+            "password": "test_password",
+            "email": "test@example.com",
+            "type": 0,
+            "family_id": 1
+        }
+
+        response = client.post("/api/users", json=test_data)
+        assert response.status_code == 400
+        assert "User creation failed" in response.json()["detail"]
+
+        mock_db.rollback.assert_called_once()
+    finally:
+        app.dependency_overrides.clear()
