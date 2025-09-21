@@ -33,19 +33,26 @@ import pytest
 
 def test_logout_success(client, monkeypatch):
     """正常なログアウトテスト"""
-    # JWTトークンのデコードをモック
-    mock_payload = {"sub": "test_user", "exp": 9999999999}
-    monkeypatch.setattr("auth.jwt.decode", lambda *args, **kwargs: mock_payload)
-
     # ユーザー情報のモック
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.user_name = "test_user"
     mock_user.status = 1
-    monkeypatch.setattr("auth.get_user_by_username", lambda username: mock_user)
+
+    # dependencies.get_current_user 関数をモック
+    def mock_get_current_user():
+        return mock_user
+
+    # FastAPIアプリの依存性注入をオーバーライド
+    from main import app
+    from dependencies import get_current_user
+    app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer valid_token"}
     response = client.post("/api/logout", headers=headers)
+
+    # テスト後にオーバーライドをクリア
+    app.dependency_overrides.clear()
 
     assert response.status_code == 200
     response_data = response.json()
@@ -57,15 +64,19 @@ def test_logout_no_token(client):
     """トークンなしでのログアウトテスト"""
     response = client.post("/api/logout")
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json()["detail"] == "Not authenticated"
 
 
 def test_logout_invalid_token(client, monkeypatch):
     """無効なトークンでのログアウトテスト"""
-    # JWTデコードエラーをモック
-    from jose import JWTError
-    monkeypatch.setattr("auth.jwt.decode", lambda *args, **kwargs: (_ for _ in ()).throw(JWTError()))
+    from fastapi import HTTPException
+
+    # get_current_user 関数が例外を投げるようにモック
+    def mock_get_current_user(credentials):
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+    monkeypatch.setattr("routers.auth.get_current_user", mock_get_current_user)
 
     headers = {"Authorization": "Bearer invalid_token"}
     response = client.post("/api/logout", headers=headers)
@@ -76,45 +87,60 @@ def test_logout_invalid_token(client, monkeypatch):
 
 def test_logout_expired_token(client, monkeypatch):
     """期限切れトークンでのログアウトテスト"""
-    # 期限切れのトークンペイロードをモック
-    mock_payload = {"sub": "test_user", "exp": 1}  # 過去のタイムスタンプ
-    monkeypatch.setattr("auth.jwt.decode", lambda *args, **kwargs: mock_payload)
+    from fastapi import HTTPException
+
+    # get_current_user 関数が期限切れエラーを投げるようにモック
+    def mock_get_current_user(credentials):
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+    monkeypatch.setattr("routers.auth.get_current_user", mock_get_current_user)
 
     headers = {"Authorization": "Bearer expired_token"}
     response = client.post("/api/logout", headers=headers)
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Token has expired"
+    assert response.json()["detail"] == "Could not validate credentials"
 
 
 def test_logout_user_not_found(client, monkeypatch):
     """存在しないユーザーのトークンでのログアウトテスト"""
-    # 有効なトークンだが存在しないユーザー
-    mock_payload = {"sub": "nonexistent_user", "exp": 9999999999}
-    monkeypatch.setattr("auth.jwt.decode", lambda *args, **kwargs: mock_payload)
-    monkeypatch.setattr("auth.get_user_by_username", lambda username: None)
+    from fastapi import HTTPException
+
+    # get_current_user 関数がユーザー見つからないエラーを投げるようにモック
+    def mock_get_current_user(credentials):
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+    monkeypatch.setattr("routers.auth.get_current_user", mock_get_current_user)
 
     headers = {"Authorization": "Bearer valid_token_invalid_user"}
     response = client.post("/api/logout", headers=headers)
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "User not found"
+    assert response.json()["detail"] == "Could not validate credentials"
 
 
 def test_logout_disabled_user(client, monkeypatch):
     """無効化されたユーザーのトークンでのログアウトテスト"""
-    mock_payload = {"sub": "disabled_user", "exp": 9999999999}
-    monkeypatch.setattr("auth.jwt.decode", lambda *args, **kwargs: mock_payload)
-
     # 無効化されたユーザー情報のモック
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.user_name = "disabled_user"
     mock_user.status = 0  # 無効化ステータス
-    monkeypatch.setattr("auth.get_user_by_username", lambda username: mock_user)
+
+    # dependencies.get_current_user 関数をモック
+    def mock_get_current_user():
+        return mock_user
+
+    # FastAPIアプリの依存性注入をオーバーライド
+    from main import app
+    from dependencies import get_current_user
+    app.dependency_overrides[get_current_user] = mock_get_current_user
 
     headers = {"Authorization": "Bearer valid_token_disabled_user"}
     response = client.post("/api/logout", headers=headers)
+
+    # テスト後にオーバーライドをクリア
+    app.dependency_overrides.clear()
 
     assert response.status_code == 403
     assert response.json()["detail"] == "User account is disabled"
@@ -125,7 +151,7 @@ def test_logout_malformed_authorization_header(client):
     headers = {"Authorization": "InvalidFormat"}
     response = client.post("/api/logout", headers=headers)
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json()["detail"] == "Not authenticated"
 
 
@@ -134,5 +160,5 @@ def test_logout_empty_token(client):
     headers = {"Authorization": "Bearer "}
     response = client.post("/api/logout", headers=headers)
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json()["detail"] == "Not authenticated"

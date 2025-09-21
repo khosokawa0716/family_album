@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import timedelta
-from schemas import LoginRequest, LoginResponse, UserResponse
+from schemas import LoginRequest, LoginResponse, UserResponse, LogoutResponse
 from auth import authenticate_user, create_access_token
 from config import ACCESS_TOKEN_EXPIRE_MINUTES
+from dependencies import get_current_user
+from models import User
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
@@ -33,3 +35,18 @@ def login(login_request: LoginRequest):
         token_type="bearer",
         user=UserResponse.model_validate(user)
     )
+
+@router.post("/logout", response_model=LogoutResponse)
+def logout(current_user: User = Depends(get_current_user)):
+    # ユーザーが無効化されていないかチェック
+    if current_user.status != 1:
+        raise HTTPException(
+            status_code=403,
+            detail="User account is disabled"
+        )
+
+    # 現在の実装では、JWT はステートレスなので
+    # サーバー側でトークンを無効化する必要はない
+    # 実際のログアウト処理はクライアント側でトークンを削除することで行う
+
+    return LogoutResponse(message="Successfully logged out")
