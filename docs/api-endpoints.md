@@ -10,7 +10,7 @@
 - `POST /api/users` … ユーザー新規登録（管理者による登録のみ）
 - `GET /api/users/me` … 自分のユーザー情報取得
 - `GET /api/users` … ユーザー一覧（管理者のみ）※ページネーション・ソート機能は未実装
-- `PATCH /api/users/:id` … ユーザー情報編集
+- `PATCH /api/users/:id` … ユーザー情報編集（管理者：全フィールド、一般ユーザー：自分のみ基本情報）
 - `DELETE /api/users/:id` … ユーザー削除（管理者のみ）
 
 ## 写真
