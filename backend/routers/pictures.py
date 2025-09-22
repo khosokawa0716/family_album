@@ -13,7 +13,7 @@ from io import BytesIO
 
 from database import get_db
 from models import Picture, User, Category, Comment
-from schemas import PictureListResponse, PictureResponse, PictureCreateRequest, CommentResponse, CommentCreateRequest
+from schemas import PictureListResponse, PictureResponse, PictureCreateRequest, CommentResponse, CommentCreateRequest, CommentUpdateRequest
 from dependencies import get_current_user
 from config.storage import get_storage_config, StorageConfig
 
@@ -722,3 +722,71 @@ def post_picture_comment(
         logger.error(f"Failed to create comment for picture {picture_id}: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to create comment")
+
+
+@router.patch("/comments/{comment_id}", response_model=CommentResponse)
+def update_comment(
+    comment_id: int,
+    update_request: CommentUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    コメント編集API
+
+    指定されたIDのコメントを編集する。
+    コメントの作成者のみが編集可能。
+    家族スコープでのアクセス制御により、自分の家族の写真のコメントのみ編集可能。
+    削除済みコメント（is_deleted=1）は編集不可。
+
+    Args:
+        comment_id: 編集するコメントのID
+        update_request: コメント更新リクエスト
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+
+    Returns:
+        CommentResponse: 更新されたコメント情報
+
+    Raises:
+        HTTPException:
+            - 404: コメントが見つからない、削除済みコメント、または他家族のコメント
+            - 403: コメントの作成者以外がアクセス
+            - 422: リクエストボディのバリデーションエラー
+            - 500: データベース更新エラー
+    """
+
+    # 家族スコープでのコメント取得（削除済みは除外）
+    # 写真を経由して家族スコープをチェック
+    comment = db.query(Comment).join(Picture, Comment.picture_id == Picture.id).filter(
+        and_(
+            Comment.id == comment_id,
+            Comment.is_deleted == 0,
+            Picture.family_id == current_user.family_id
+        )
+    ).first()
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    # コメント作成者のみ編集可能
+    if comment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only edit your own comments")
+
+    # コメント更新処理
+    try:
+        comment.content = update_request.content
+        comment.update_date = datetime.utcnow()
+
+        db.commit()
+
+        # 更新後のコメント情報をユーザー情報と一緒に取得
+        updated_comment = db.query(Comment).join(User).filter(Comment.id == comment.id).first()
+
+        logger.info(f"Comment updated: ID={comment_id}, User={current_user.id}")
+        return CommentResponse.from_comment(updated_comment)
+
+    except Exception as e:
+        logger.error(f"Failed to update comment {comment_id}: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update comment")

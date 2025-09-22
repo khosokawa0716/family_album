@@ -173,6 +173,19 @@ class CommentCreateRequest(BaseModel):
         return v.strip()
 
 
+class CommentUpdateRequest(BaseModel):
+    content: str
+
+    @field_validator('content')
+    @classmethod
+    def validate_content(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Comment content cannot be empty')
+        if len(v) > 1000:
+            raise ValueError('Comment content must be 1000 characters or less')
+        return v.strip()
+
+
 class CommentResponse(BaseModel):
     id: int
     content: str
