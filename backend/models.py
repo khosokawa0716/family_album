@@ -60,3 +60,15 @@ class Picture(Base):
     status = Column(SmallInteger, nullable=False, default=1)
     create_date = Column(DateTime, nullable=False, server_default=func.now())
     update_date = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+
+class Comment(Base):
+    __tablename__ = 'comments'
+
+    id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
+    content = Column(String(1000), nullable=False)
+    user_id = Column(INTEGER(unsigned=True), ForeignKey('users.id'), nullable=False)
+    picture_id = Column(INTEGER(unsigned=True), ForeignKey('pictures.id'), nullable=False)
+    is_deleted = Column(SmallInteger, nullable=False, default=0)
+    create_date = Column(DateTime, nullable=False, server_default=func.now())
+    update_date = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

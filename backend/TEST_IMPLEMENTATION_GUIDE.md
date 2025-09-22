@@ -69,10 +69,41 @@ def test_{機能}_{状況}_{期待結果}(client, monkeypatch):
 
 ## 🔧 共通テストパターン
 
-### 1. モック設定パターン
+### 1. 基本的なモック設定パターン（推奨）
 
 ```python
-def test_example(client, monkeypatch):
+def test_example():
+    """推奨：app.dependency_overridesを使用した方法"""
+    client = TestClient(app)
+
+    # 認証ユーザーのモック
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.family_id = 1
+    mock_user.user_name = "test_user"
+
+    # データベースモック
+    mock_db_session = MagicMock()
+    mock_query = MagicMock()
+    mock_query.filter.return_value.first.return_value = mock_user
+    mock_db_session.query.return_value = mock_query
+
+    # dependency overrides
+    app.dependency_overrides[get_current_user] = lambda: mock_user
+    app.dependency_overrides[get_db] = lambda: mock_db_session
+
+    try:
+        response = client.get("/api/endpoint")
+        assert response.status_code == 200
+    finally:
+        app.dependency_overrides.clear()
+```
+
+### 2. 従来のモック設定パターン（非推奨）
+
+```python
+def test_example_legacy(client, monkeypatch):
+    """従来方法：monkeypatchを使用（非推奨）"""
     # データベースモック
     mock_user = MagicMock()
     mock_user.id = 1
@@ -86,30 +117,59 @@ def test_example(client, monkeypatch):
 
     from database import db
     monkeypatch.setattr(db, "session", mock_db_session)
+    monkeypatch.setattr("dependencies.get_current_user", lambda: mock_user)
 ```
 
-### 2. 認証モックパターン
+### 3. 複雑なクエリチェーンのモック
 
 ```python
-def test_with_auth(client, monkeypatch):
-    # JWT認証のモック
-    mock_get_current_user = MagicMock()
-    mock_get_current_user.return_value = mock_user_object
+def setup_mock_query_chain():
+    """JOIN、filter、order_byなどのチェーンクエリのモック"""
+    mock_query = MagicMock()
+    mock_join_query = MagicMock()
+    mock_filter_query = MagicMock()
+    mock_order_query = MagicMock()
 
-    monkeypatch.setattr("dependencies.get_current_user", mock_get_current_user)
+    mock_query.join.return_value = mock_join_query
+    mock_join_query.filter.return_value = mock_filter_query
+    mock_filter_query.order_by.return_value = mock_order_query
+
+    return mock_query, mock_order_query
+
+def test_complex_query():
+    """複雑なクエリチェーンのテスト例"""
+    # コメントクエリ例：query(Comment).join(User).filter(...).order_by(...).all()
+    mock_comment_query, mock_order_query = setup_mock_query_chain()
+    mock_order_query.all.return_value = [mock_comment1, mock_comment2]
+
+    def query_side_effect(model):
+        if model.__name__ == 'Comment':
+            return mock_comment_query
+        return MagicMock()
+
+    mock_db_session.query.side_effect = query_side_effect
 ```
 
-### 3. ファイル操作モックパターン
+### 4. ファイル操作モックパターン
 
 ```python
-def test_file_operation(client, monkeypatch):
+def test_file_operation():
+    """ファイル操作のモック例"""
+    client = TestClient(app)
+
     # ファイル存在チェック
-    monkeypatch.setattr("os.path.exists", lambda path: True)
+    with patch("os.path.exists", return_value=True):
+        # ファイル読み込み
+        mock_file_content = b"test image data"
+        with patch("builtins.open", mock_open(read_data=mock_file_content)):
+            # dependency overrides
+            app.dependency_overrides[get_current_user] = lambda: mock_user
 
-    # ファイル読み込み
-    mock_file_content = b"test image data"
-    with patch("builtins.open", mock_open(read_data=mock_file_content)):
-        # テスト実行
+            try:
+                response = client.get("/api/file/download")
+                assert response.status_code == 200
+            finally:
+                app.dependency_overrides.clear()
 ```
 
 ## ✅ 必須テストケースパターン
@@ -117,41 +177,111 @@ def test_file_operation(client, monkeypatch):
 ### 1. 認証・認可テスト（全API共通）
 
 ```python
-def test_unauthorized_access(client):
+def test_unauthorized_access():
     """未認証アクセスの拒否"""
+    client = TestClient(app)
     response = client.get("/api/endpoint")
-    assert response.status_code == 401
+    assert response.status_code == 403  # FastAPIのデフォルト挙動
 
-def test_other_family_access_denied(client, monkeypatch):
+def test_other_family_access_denied():
     """他家族データへのアクセス拒否"""
-    # 異なるfamily_idのユーザーでテスト
+    client = TestClient(app)
+
+    # 認証ユーザー（family_id = 1）
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.family_id = 1
+
+    # データベースモック（他家族のデータは家族スコープで除外される）
+    mock_db_session = MagicMock()
+    mock_query = MagicMock()
+    mock_query.filter.return_value.first.return_value = None  # 除外される
+
+    mock_db_session.query.return_value = mock_query
+
+    app.dependency_overrides[get_current_user] = lambda: mock_user
+    app.dependency_overrides[get_db] = lambda: mock_db_session
+
+    try:
+        response = client.get("/api/endpoint/1")
+        assert response.status_code == 404  # 見つからないとして処理
+    finally:
+        app.dependency_overrides.clear()
 ```
 
 ### 2. 正常系テスト
 
 ```python
-def test_success_case(client, monkeypatch):
+def test_success_case():
     """正常なリクエストの成功"""
-    # モック設定
-    # リクエスト実行
-    response = client.post("/api/endpoint", json=test_data)
+    client = TestClient(app)
 
-    assert response.status_code == 200
-    assert response.json()["expected_field"] == "expected_value"
+    # 認証ユーザーモック
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.family_id = 1
+
+    # データベースモック
+    mock_result = MagicMock()
+    mock_result.id = 1
+    mock_result.name = "test_data"
+
+    mock_db_session = MagicMock()
+    mock_query = MagicMock()
+    mock_query.filter.return_value.first.return_value = mock_result
+    mock_db_session.query.return_value = mock_query
+
+    app.dependency_overrides[get_current_user] = lambda: mock_user
+    app.dependency_overrides[get_db] = lambda: mock_db_session
+
+    try:
+        response = client.post("/api/endpoint", json={"name": "test_data"})
+        assert response.status_code == 200
+        assert response.json()["expected_field"] == "expected_value"
+    finally:
+        app.dependency_overrides.clear()
 ```
 
 ### 3. 異常系テスト
 
 ```python
-def test_invalid_data(client, monkeypatch):
+def test_invalid_data():
     """不正なデータでのエラー"""
-    response = client.post("/api/endpoint", json=invalid_data)
-    assert response.status_code == 400
+    client = TestClient(app)
 
-def test_not_found(client, monkeypatch):
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.family_id = 1
+
+    app.dependency_overrides[get_current_user] = lambda: mock_user
+
+    try:
+        response = client.post("/api/endpoint", json={"invalid": "data"})
+        assert response.status_code == 422  # FastAPIのバリデーションエラー
+    finally:
+        app.dependency_overrides.clear()
+
+def test_not_found():
     """存在しないリソースへのアクセス"""
-    response = client.get("/api/endpoint/999")
-    assert response.status_code == 404
+    client = TestClient(app)
+
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.family_id = 1
+
+    mock_db_session = MagicMock()
+    mock_query = MagicMock()
+    mock_query.filter.return_value.first.return_value = None
+    mock_db_session.query.return_value = mock_query
+
+    app.dependency_overrides[get_current_user] = lambda: mock_user
+    app.dependency_overrides[get_db] = lambda: mock_db_session
+
+    try:
+        response = client.get("/api/endpoint/999")
+        assert response.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
 ```
 
 ## 🎪 テストフィクスチャの活用
@@ -177,11 +307,12 @@ def mock_db_session(monkeypatch):
 
 ```python
 assert response.status_code == 200  # 成功
-assert response.status_code == 400  # バリデーションエラー
-assert response.status_code == 401  # 未認証
-assert response.status_code == 403  # 認可エラー
-assert response.status_code == 404  # 見つからない
+assert response.status_code == 201  # 作成成功
+assert response.status_code == 204  # 成功（レスポンスボディなし）
+assert response.status_code == 403  # 未認証（FastAPIデフォルト）
+assert response.status_code == 404  # 見つからない、家族スコープ外
 assert response.status_code == 409  # 競合（一意制約違反等）
+assert response.status_code == 422  # FastAPIバリデーションエラー
 ```
 
 ### 2. レスポンス内容
@@ -242,9 +373,12 @@ def test_specific_case(client, monkeypatch):
 
 ### 1. モック使用時の注意
 
+- **app.dependency_overridesを優先使用**: monkeypatchより推奨
+- **try-finally必須**: app.dependency_overrides.clear()を確実に実行
 - **データベース操作は必ずモック化**: 実際のDBは使用しない
 - **外部API呼び出しはモック化**: HTTPリクエスト等
 - **ファイルシステム操作はモック化**: 実際のファイル作成は避ける
+- **複雑なクエリチェーンのモック**: JOIN、filter、order_byの順序に注意
 
 ### 2. テストデータの管理
 
@@ -281,10 +415,31 @@ def test_specific_case(client, monkeypatch):
 
 ## 🚀 実装時のベストプラクティス
 
+### 1. テスト設計・実装順序
+
 1. **テストファーストアプローチ**: 実装前にテストケースを設計
 2. **段階的実装**: 正常系 → 異常系 → セキュリティテストの順
-3. **リファクタリング時**: 既存テストが全て通ることを確認
-4. **定期的なレビュー**: テストコードの品質維持
+3. **モック戦略**: `app.dependency_overrides` → 複雑なクエリチェーン → ファイル操作
+4. **リファクタリング時**: 既存テストが全て通ることを確認
+
+### 2. HTTPステータスコードの実態把握
+
+- **未認証は403**: FastAPIのデフォルト挙動（401ではない）
+- **家族スコープ外は404**: 権限エラーではなく「見つからない」として処理
+- **バリデーションエラーは422**: FastAPIの自動バリデーション
+- **実装前にAPI仕様確認**: 期待するステータスコードを事前に検証
+
+### 3. モック設計のポイント
+
+- **try-finally必須**: dependency_overridesのクリアを確実に実行
+- **家族スコープ**: 他家族データは`None`を返すようモック設計
+- **削除済みデータ**: `status=1`フィルタで除外される動作をモック
+- **複雑クエリ**: JOIN、filter、order_byのチェーンを個別にモック
+
+### 4. 定期的なメンテナンス
+
+- **テストコードの品質維持**: 実装の変更に合わせてテスト更新
+- **ガイドライン更新**: 新しいパターンが発見されたら随時追加
 
 ---
 

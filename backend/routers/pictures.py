@@ -12,8 +12,8 @@ import logging
 from io import BytesIO
 
 from database import get_db
-from models import Picture, User, Category
-from schemas import PictureListResponse, PictureResponse, PictureCreateRequest
+from models import Picture, User, Category, Comment
+from schemas import PictureListResponse, PictureResponse, PictureCreateRequest, CommentResponse
 from dependencies import get_current_user
 from config.storage import get_storage_config, StorageConfig
 
@@ -591,3 +591,67 @@ def download_picture(
     except Exception as e:
         logger.error(f"Failed to create file response for {file_path}: {e}")
         raise HTTPException(status_code=500, detail="Failed to serve file")
+
+
+@router.get("/pictures/{picture_id}/comments", response_model=List[CommentResponse])
+def get_picture_comments(
+    picture_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    写真へのコメント一覧取得API
+
+    指定されたIDの写真に紐づくコメント一覧を取得する。
+    家族スコープでのアクセス制御により、自分の家族の写真のコメントのみ取得可能。
+    削除済みコメント（is_deleted=1）は除外される。
+    コメントは作成日時の昇順でソートされる。
+
+    Args:
+        picture_id: コメントを取得する写真のID
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+
+    Returns:
+        List[CommentResponse]: コメント一覧
+
+    Raises:
+        HTTPException:
+            - 404: 写真が見つからない、削除済み写真、または他家族の写真
+    """
+
+    # 家族スコープでの写真取得（削除済みは除外）
+    picture = db.query(Picture).filter(
+        and_(
+            Picture.id == picture_id,
+            Picture.family_id == current_user.family_id,
+            Picture.status == 1
+        )
+    ).first()
+
+    if not picture:
+        raise HTTPException(status_code=404, detail="Picture not found")
+
+    # コメント一覧取得（削除済みは除外、作成日時順ソート）
+    comments = db.query(Comment).join(User, Comment.user_id == User.id).filter(
+        and_(
+            Comment.picture_id == picture_id,
+            Comment.is_deleted == 0
+        )
+    ).order_by(Comment.create_date.asc()).all()
+
+    # レスポンス用データ整形
+    comment_responses = []
+    for comment in comments:
+        comment_data = CommentResponse(
+            id=comment.id,
+            content=comment.content,
+            user_id=comment.user_id,
+            picture_id=comment.picture_id,
+            user_name=comment.user.user_name,
+            create_date=comment.create_date,
+            update_date=comment.update_date
+        )
+        comment_responses.append(comment_data)
+
+    return comment_responses

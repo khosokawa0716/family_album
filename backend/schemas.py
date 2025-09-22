@@ -158,3 +158,15 @@ class PictureListResponse(BaseModel):
     limit: int
     offset: int
     has_more: bool
+
+
+class CommentResponse(BaseModel):
+    id: int
+    content: str
+    user_id: int
+    picture_id: int
+    user_name: str
+    create_date: datetime
+    update_date: datetime
+
+    model_config = ConfigDict(from_attributes=True)
