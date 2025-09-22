@@ -13,7 +13,7 @@ from io import BytesIO
 
 from database import get_db
 from models import Picture, User, Category, Comment
-from schemas import PictureListResponse, PictureResponse, PictureCreateRequest, CommentResponse
+from schemas import PictureListResponse, PictureResponse, PictureCreateRequest, CommentResponse, CommentCreateRequest
 from dependencies import get_current_user
 from config.storage import get_storage_config, StorageConfig
 
@@ -655,3 +655,70 @@ def get_picture_comments(
         comment_responses.append(comment_data)
 
     return comment_responses
+
+
+@router.post("/pictures/{picture_id}/comments", response_model=CommentResponse, status_code=201)
+def post_picture_comment(
+    picture_id: int,
+    comment_request: CommentCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    写真へのコメント投稿API
+
+    指定されたIDの写真にコメントを投稿する。
+    家族スコープでのアクセス制御により、自分の家族の写真にのみコメント投稿可能。
+    削除済み写真（status=0）にはコメント投稿不可。
+
+    Args:
+        picture_id: コメントを投稿する写真のID
+        comment_request: コメント投稿リクエスト
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+
+    Returns:
+        CommentResponse: 投稿されたコメント情報
+
+    Raises:
+        HTTPException:
+            - 404: 写真が見つからない、削除済み写真、または他家族の写真
+            - 422: リクエストボディのバリデーションエラー
+            - 500: データベース保存エラー
+    """
+
+    # 家族スコープでの写真取得（削除済みは除外）
+    picture = db.query(Picture).filter(
+        and_(
+            Picture.id == picture_id,
+            Picture.family_id == current_user.family_id,
+            Picture.status == 1
+        )
+    ).first()
+
+    if not picture:
+        raise HTTPException(status_code=404, detail="Picture not found")
+
+    # コメント作成
+    try:
+        comment = Comment(
+            content=comment_request.content,
+            user_id=current_user.id,
+            picture_id=picture_id,
+            is_deleted=0
+        )
+
+        db.add(comment)
+        db.commit()
+        db.refresh(comment)
+
+        # ユーザー情報を含む完全なコメントオブジェクトを取得
+        comment_with_user = db.query(Comment).join(User).filter(Comment.id == comment.id).first()
+
+        logger.info(f"Comment created: ID={comment.id}, User={current_user.id}, Picture={picture_id}")
+        return CommentResponse.from_comment(comment_with_user)
+
+    except Exception as e:
+        logger.error(f"Failed to create comment for picture {picture_id}: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to create comment")

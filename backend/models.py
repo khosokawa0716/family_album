@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, SmallInteger, DateTime, ForeignKey, Text
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import INTEGER
+from sqlalchemy.orm import relationship
 from database import Base
 
 class User(Base):
@@ -72,3 +73,6 @@ class Comment(Base):
     is_deleted = Column(SmallInteger, nullable=False, default=0)
     create_date = Column(DateTime, nullable=False, server_default=func.now())
     update_date = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", backref="comments")

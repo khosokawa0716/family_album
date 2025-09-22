@@ -160,6 +160,19 @@ class PictureListResponse(BaseModel):
     has_more: bool
 
 
+class CommentCreateRequest(BaseModel):
+    content: str
+
+    @field_validator('content')
+    @classmethod
+    def validate_content(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Comment content cannot be empty')
+        if len(v) > 1000:
+            raise ValueError('Comment content must be 1000 characters or less')
+        return v.strip()
+
+
 class CommentResponse(BaseModel):
     id: int
     content: str
@@ -170,3 +183,18 @@ class CommentResponse(BaseModel):
     update_date: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @classmethod
+    def from_comment(cls, comment):
+        """
+        Comment オブジェクトから CommentResponse を作成する
+        """
+        return cls(
+            id=comment.id,
+            content=comment.content,
+            user_id=comment.user_id,
+            picture_id=comment.picture_id,
+            user_name=comment.user.user_name,
+            create_date=comment.create_date,
+            update_date=comment.update_date
+        )
