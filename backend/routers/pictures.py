@@ -448,3 +448,60 @@ def delete_picture(
         logger.error(f"Failed to delete picture {picture_id}: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to delete picture")
+
+
+@router.patch("/pictures/{picture_id}/restore", status_code=200)
+def restore_picture(
+    picture_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    写真復元API
+
+    指定されたIDの写真をごみ箱から復元する。
+    statusを1に変更し、deleted_atをNULLに設定する。
+    家族スコープでのアクセス制御により、自分の家族の写真のみ復元可能。
+
+    Args:
+        picture_id: 復元する写真のID
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+
+    Returns:
+        200 OK: 復元成功メッセージ
+
+    Raises:
+        HTTPException:
+            - 404: 写真が見つからない、または他家族の写真
+            - 400: 既に有効な写真(status=1)
+            - 500: データベース更新エラー
+    """
+
+    # 家族スコープでの写真取得（削除済みの写真のみ対象）
+    picture = db.query(Picture).filter(
+        and_(
+            Picture.id == picture_id,
+            Picture.family_id == current_user.family_id,
+            Picture.status == 0
+        )
+    ).first()
+
+    if not picture:
+        raise HTTPException(status_code=404, detail="Picture not found or already restored")
+
+    # 復元処理実行
+    try:
+        picture.status = 1
+        picture.deleted_at = None
+        picture.updated_at = datetime.utcnow()
+
+        db.commit()
+        logger.info(f"Picture restored: ID={picture_id}, User={current_user.id}")
+
+        return {"message": "Picture restored successfully"}
+
+    except Exception as e:
+        logger.error(f"Failed to restore picture {picture_id}: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to restore picture")
