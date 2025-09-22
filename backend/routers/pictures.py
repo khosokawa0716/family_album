@@ -386,3 +386,65 @@ async def upload_picture(
                     logger.error(f"Failed to cleanup file {path}: {cleanup_error}")
 
         raise HTTPException(status_code=500, detail="Failed to save picture information")
+
+
+@router.delete("/pictures/{picture_id}", status_code=204)
+def delete_picture(
+    picture_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    写真削除API（論理削除）
+
+    指定されたIDの写真を論理削除（ごみ箱へ移動）する。
+    statusを0に変更し、deleted_atを現在時刻に設定する。
+    家族スコープでのアクセス制御により、自分の家族の写真のみ削除可能。
+
+    Args:
+        picture_id: 削除する写真のID
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+
+    Returns:
+        204 No Content: 削除成功
+
+    Raises:
+        HTTPException:
+            - 400: 不正なUUID形式
+            - 404: 写真が見つからない、または他家族の写真
+            - 404: 既に削除済み写真(status=0)
+            - 500: データベース更新エラー
+    """
+
+    # UUID形式検証
+    try:
+        uuid.UUID(picture_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid picture ID format")
+
+    # 家族スコープでの写真取得（削除済みは除外）
+    picture = db.query(Picture).filter(
+        and_(
+            Picture.id == picture_id,
+            Picture.family_id == current_user.family_id,
+            Picture.status == 1
+        )
+    ).first()
+
+    if not picture:
+        raise HTTPException(status_code=404, detail="Picture not found")
+
+    # 論理削除実行
+    try:
+        picture.status = 0
+        picture.deleted_at = datetime.utcnow()
+        picture.updated_at = datetime.utcnow()
+
+        db.commit()
+        logger.info(f"Picture deleted: ID={picture_id}, User={current_user.id}")
+
+    except Exception as e:
+        logger.error(f"Failed to delete picture {picture_id}: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to delete picture")
