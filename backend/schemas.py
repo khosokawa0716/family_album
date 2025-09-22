@@ -123,6 +123,35 @@ class PictureResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PictureCreateRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category_id: Optional[int] = None
+
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v):
+        if v is not None and len(v.strip()) == 0:
+            return None
+        if v is not None and len(v) > 255:
+            raise ValueError('Title must be 255 characters or less')
+        return v
+
+    @field_validator('description')
+    @classmethod
+    def validate_description(cls, v):
+        if v is not None and len(v.strip()) == 0:
+            return None
+        return v
+
+    @field_validator('category_id')
+    @classmethod
+    def validate_category_id(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError('Category ID must be a positive integer')
+        return v
+
+
 class PictureListResponse(BaseModel):
     pictures: list[PictureResponse]
     total: int

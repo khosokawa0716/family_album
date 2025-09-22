@@ -1,15 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, extract, desc
 from typing import List, Optional
 from datetime import datetime
+from PIL import Image, ExifTags
+import uuid
+import os
+from pathlib import Path
+import logging
+from io import BytesIO
 
 from database import get_db
 from models import Picture, User, Category
-from schemas import PictureListResponse, PictureResponse
+from schemas import PictureListResponse, PictureResponse, PictureCreateRequest
 from dependencies import get_current_user
+from config.storage import get_storage_config, StorageConfig
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.get("/pictures", response_model=PictureListResponse)
 def get_pictures(
@@ -160,3 +168,221 @@ def get_picture_detail(
         raise HTTPException(status_code=404, detail="Picture not found")
 
     return picture
+
+
+@router.post("/pictures", response_model=PictureResponse, status_code=201)
+async def upload_picture(
+    file: UploadFile = File(...),
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    category_id: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    storage_config: StorageConfig = Depends(get_storage_config)
+):
+    """
+    画像アップロードAPI
+
+    multipart/form-dataで画像ファイルとメタデータを受信し、
+    EXIF除去、サムネイル生成、ファイル検証を実行して保存する。
+
+    Args:
+        file: アップロードする画像ファイル
+        title: 写真のタイトル（任意）
+        description: 写真の説明（任意）
+        category_id: カテゴリID（任意）
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+        storage_config: ストレージ設定
+
+    Returns:
+        PictureResponse: 保存された写真情報
+
+    Raises:
+        HTTPException:
+            - 400: ファイル検証エラー、カテゴリエラー等
+            - 500: ファイル保存エラー、データベースエラー
+    """
+
+    # 1. ファイル基本検証
+    if not file.content_type:
+        raise HTTPException(status_code=400, detail="File content type is required")
+
+    if not storage_config.is_allowed_image_type(file.content_type):
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type {file.content_type} is not allowed. "
+                   f"Allowed types: {', '.join(storage_config.allowed_image_types)}"
+        )
+
+    # ファイル内容を読み込み
+    file_content = await file.read()
+    file_size = len(file_content)
+
+    if not storage_config.is_valid_file_size(file_size):
+        max_size_mb = storage_config.max_upload_size / 1024 / 1024
+        raise HTTPException(
+            status_code=400,
+            detail=f"File size ({file_size} bytes) is too large. "
+                   f"Maximum allowed: {max_size_mb:.1f}MB"
+        )
+
+    # 2. カテゴリ検証（指定された場合）
+    if category_id is not None:
+        category = db.query(Category).filter(
+            and_(
+                Category.id == category_id,
+                Category.family_id == current_user.family_id,
+                Category.status == 1
+            )
+        ).first()
+
+        if not category:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Category with ID {category_id} not found or not accessible"
+            )
+
+    # 3. 画像検証・メタデータ抽出
+    try:
+        # PIL で画像を開いて検証
+        image = Image.open(BytesIO(file_content))
+
+        # 画像サイズ取得
+        width, height = image.size
+
+        # MIME型の再確認（PIL の format から）
+        pil_format = image.format
+        if pil_format:
+            format_to_mime = {
+                'JPEG': 'image/jpeg',
+                'PNG': 'image/png',
+                'GIF': 'image/gif',
+                'WEBP': 'image/webp'
+            }
+            detected_mime = format_to_mime.get(pil_format, file.content_type)
+        else:
+            detected_mime = file.content_type
+
+        # EXIF から撮影日時を抽出
+        taken_date = None
+        if hasattr(image, '_getexif') and image._getexif():
+            exif_data = image._getexif()
+            if exif_data:
+                for tag_id, value in exif_data.items():
+                    tag = ExifTags.TAGS.get(tag_id, tag_id)
+                    if tag == "DateTime":
+                        try:
+                            taken_date = datetime.strptime(value, "%Y:%m:%d %H:%M:%S")
+                            break
+                        except ValueError:
+                            logger.warning(f"Invalid EXIF DateTime format: {value}")
+
+    except Exception as e:
+        logger.error(f"Image validation failed: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid image file or unsupported format"
+        )
+
+    # 4. ユニークファイル名生成
+    file_extension = Path(file.filename).suffix.lower()
+    if not file_extension:
+        # MIME型から拡張子を推定
+        mime_to_ext = {
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/gif': '.gif',
+            'image/webp': '.webp'
+        }
+        file_extension = mime_to_ext.get(detected_mime, '.jpg')
+
+    unique_filename = f"{uuid.uuid4().hex}{file_extension}"
+    thumb_filename = f"thumb_{unique_filename}"
+
+    # ファイルパス生成
+    photo_path = storage_config.get_photo_file_path(unique_filename)
+    thumb_path = storage_config.get_thumbnail_file_path(thumb_filename)
+
+    # 5. ファイル保存処理
+    try:
+        # EXIF除去処理
+        if image.mode in ('RGBA', 'LA', 'P'):
+            # アルファチャンネルがある場合は適切に変換
+            if detected_mime == 'image/jpeg':
+                # JPEGはアルファチャンネルをサポートしないため、白背景で合成
+                background = Image.new('RGB', image.size, (255, 255, 255))
+                if image.mode == 'P':
+                    image = image.convert('RGBA')
+                background.paste(image, mask=image.split()[-1] if 'A' in image.mode else None)
+                image = background
+            else:
+                image = image.convert('RGB')
+
+        # オリジナル画像保存（EXIF除去）
+        with open(photo_path, 'wb') as f:
+            image.save(f, format=pil_format, quality=95 if pil_format == 'JPEG' else None)
+
+        # サムネイル生成・保存
+        thumbnail = image.copy()
+        thumbnail.thumbnail((300, 300), Image.Resampling.LANCZOS)
+
+        with open(thumb_path, 'wb') as f:
+            thumbnail.save(f, format=pil_format, quality=85 if pil_format == 'JPEG' else None)
+
+        logger.info(f"Files saved: {photo_path}, {thumb_path}")
+
+    except Exception as e:
+        logger.error(f"File save failed: {e}")
+        # 保存済みファイルがあれば削除
+        for path in [photo_path, thumb_path]:
+            if path.exists():
+                try:
+                    path.unlink()
+                except Exception:
+                    pass
+        raise HTTPException(status_code=500, detail="Failed to save image files")
+
+    # 6. データベース保存
+    try:
+        # 相対パスで保存（ストレージルートからの相対パス）
+        relative_photo_path = str(Path("photos") / unique_filename)
+        relative_thumb_path = str(Path("thumbnails") / thumb_filename)
+
+        picture = Picture(
+            family_id=current_user.family_id,
+            uploaded_by=current_user.id,
+            title=title.strip() if title and title.strip() else None,
+            description=description.strip() if description and description.strip() else None,
+            file_path=relative_photo_path,
+            thumbnail_path=relative_thumb_path,
+            file_size=file_size,
+            mime_type=detected_mime,
+            width=width,
+            height=height,
+            taken_date=taken_date,
+            category_id=category_id,
+            status=1
+        )
+
+        db.add(picture)
+        db.commit()
+        db.refresh(picture)
+
+        logger.info(f"Picture saved to database: ID={picture.id}, User={current_user.id}")
+        return picture
+
+    except Exception as e:
+        logger.error(f"Database save failed: {e}")
+        db.rollback()
+
+        # 保存済みファイルを削除
+        for path in [photo_path, thumb_path]:
+            if path.exists():
+                try:
+                    path.unlink()
+                    logger.info(f"Cleaned up file: {path}")
+                except Exception as cleanup_error:
+                    logger.error(f"Failed to cleanup file {path}: {cleanup_error}")
+
+        raise HTTPException(status_code=500, detail="Failed to save picture information")
