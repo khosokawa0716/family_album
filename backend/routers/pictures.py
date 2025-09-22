@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, extract, desc
 from typing import List, Optional
@@ -505,3 +506,88 @@ def restore_picture(
         logger.error(f"Failed to restore picture {picture_id}: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to restore picture")
+
+
+@router.get("/pictures/{picture_id}/download")
+def download_picture(
+    picture_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    storage_config: StorageConfig = Depends(get_storage_config)
+):
+    """
+    写真原本ダウンロードAPI
+
+    指定されたIDの写真の原本ファイルをダウンロードする。
+    適切なContent-TypeとContent-Dispositionヘッダーを設定してファイルを返却する。
+    家族スコープでのアクセス制御により、自分の家族の写真のみダウンロード可能。
+
+    Args:
+        picture_id: ダウンロードする写真のID
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+        storage_config: ストレージ設定
+
+    Returns:
+        FileResponse: 写真ファイル
+
+    Raises:
+        HTTPException:
+            - 404: 写真が見つからない、または他家族の写真
+            - 404: 削除済み写真(status=0)
+            - 404: ファイルが物理的に存在しない
+            - 500: ファイル読み込みエラー
+    """
+
+    # 家族スコープでの写真取得（削除済みは除外）
+    picture = db.query(Picture).filter(
+        and_(
+            Picture.id == picture_id,
+            Picture.family_id == current_user.family_id,
+            Picture.status == 1
+        )
+    ).first()
+
+    if not picture:
+        raise HTTPException(status_code=404, detail="Picture not found")
+
+    # ファイルパス取得（絶対パス）
+    file_path = storage_config.get_photo_file_path(os.path.basename(picture.file_path))
+
+    # ファイル存在確認
+    if not file_path.exists():
+        logger.error(f"File not found: {file_path}")
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # ファイル読み込み可能性確認
+    try:
+        # ファイルサイズ確認とアクセステスト
+        file_stat = file_path.stat()
+        file_size = file_stat.st_size
+
+        # ファイルが読み込み可能かテスト
+        with open(file_path, 'rb') as f:
+            f.read(1)  # 1バイト読み込みテスト
+
+    except (OSError, IOError) as e:
+        logger.error(f"Failed to read file {file_path}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to read file")
+
+    # ファイル名の準備（安全性のため、元のファイル名を使用）
+    safe_filename = picture.file_name or f"picture_{picture_id}.jpg"
+
+    try:
+        # FileResponseを返す
+        return FileResponse(
+            path=str(file_path),
+            media_type=picture.mime_type,
+            filename=safe_filename,
+            headers={
+                "Content-Length": str(file_size),
+                "Cache-Control": "private, max-age=3600"  # 1時間キャッシュ
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to create file response for {file_path}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to serve file")

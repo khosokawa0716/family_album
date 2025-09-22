@@ -33,7 +33,37 @@ DELETE /api/pictures/:id APIのテストファイル（写真削除）
    - エラー時の適切なエラーレスポンス
    - Content-Typeの確認
 
-テスト項目一覧:
+テスト項目（18項目）:
+
+【認証・認可】(3項目)
+- test_delete_picture_without_auth: 未認証でのアクセス拒否（403）
+- test_delete_picture_with_invalid_token: 無効トークンでのアクセス拒否（403）
+- test_delete_picture_with_deleted_user: 削除済みユーザーでのアクセス拒否（403）
+
+【アクセス制御】(3項目)
+- test_delete_own_family_picture_success: 自分の家族の写真の削除成功（204）
+- test_delete_other_family_picture_forbidden: 他の家族の写真削除試行の拒否（404）
+- test_delete_nonexistent_picture: 存在しない写真IDでの404エラー
+
+【削除状態・ビジネスロジック】(3項目)
+- test_delete_valid_picture_success: 有効な写真の削除成功（204）
+- test_delete_already_deleted_picture: 既に削除済み写真の削除試行（404）
+- test_delete_status_and_timestamp_update: 削除後のステータス・タイムスタンプ確認
+
+【データベース操作】(4項目)
+- test_status_updated_to_zero: statusが0に更新される
+- test_deleted_at_set_to_current_time: deleted_atが現在時刻に設定される
+- test_updated_at_refreshed: updated_atの更新確認
+- test_other_fields_unchanged: 他のフィールドは変更されない
+
+【レスポンス・エラーハンドリング】(3項目)
+- test_successful_delete_returns_204: 削除成功時の204ステータス
+- test_error_responses_proper_format: エラー時の適切なエラーレスポンス
+- test_content_type_validation: Content-Typeの確認
+
+【セキュリティ・バリデーション】(2項目)
+- test_database_error_handling: データベースエラー処理
+- test_invalid_uuid_format_error: 無効なUUID形式のエラー処理
 """
 
 import pytest
