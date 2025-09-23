@@ -327,7 +327,7 @@ def test_post_categories_invalid_json():
     try:
         # 不正なJSON形式のリクエスト
         headers = {"Content-Type": "application/json"}
-        response = client.post("/api/categories", headers=headers, data='{"name": invalid_json}')
+        response = client.post("/api/categories", headers=headers, content='{"name": invalid_json}')
         assert response.status_code == 422  # FastAPIのJSONデコードエラー
     finally:
         app.dependency_overrides.clear()
