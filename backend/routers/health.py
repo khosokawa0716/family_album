@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from database import db
 from sqlalchemy import text
 
-router = APIRouter()
+router = APIRouter(tags=["health"])
 
 @router.get("/")
 def read_root():
