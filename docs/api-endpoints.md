@@ -17,8 +17,7 @@
 - `GET /api/pictures` … 写真一覧（カテゴリ・年月で絞り込み可、無限スクロール対応）
 - `GET /api/pictures/:id` … 写真詳細
 - `POST /api/pictures` … 写真アップロード
-- `DELETE /api/pictures/:id` … 写真削除（ごみ箱へ移動）
-- `PATCH /api/pictures/:id/restore` … ごみ箱から復元
+- `DELETE /api/pictures/:id` … 写真削除（論理削除）
 - `GET /api/pictures/:id/download` … 原本ダウンロード
 
 ## コメント
@@ -32,11 +31,6 @@
 - `POST /api/categories` … カテゴリ追加（管理者のみ）
 - `PATCH /api/categories/:id` … カテゴリ編集
 - `DELETE /api/categories/:id` … カテゴリ削除
-
-## ごみ箱
-- `GET /api/trash` … ごみ箱一覧
-- `DELETE /api/trash/:id` … ごみ箱から完全削除
-- `PATCH /api/trash/:id/restore` … ごみ箱から復元
 
 ## 操作ログ
 - `GET /api/logs` … 操作ログ一覧（管理者のみ）

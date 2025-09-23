@@ -96,19 +96,6 @@
 
 ---
 
-## Trash
-
-| カラム名      | 型             | 制約                | 説明                       |
-|--------------|----------------|---------------------|----------------------------|
-| id           | int            | PK, AUTO_INCREMENT  | ゴミ箱ID                   |
-| item_type    | varchar(50)    | NOT NULL            | 種別（picture, comment等） |
-| item_id      | int            | NOT NULL            | 元データID                 |
-| user_id      | int            | NOT NULL, FK        | 削除ユーザーID             |
-| delete_date  | datetime       | NOT NULL            | 削除日時                   |
-| restore_code | varchar(64)    |                      | 復元用コード等             |
-
----
-
 ## テーブル間リレーション
 
 - **Users.family_id → Families.id** （多対1, 外部キー）
@@ -118,7 +105,6 @@
 - **Comments.picture_id → Pictures.id**（多対1, 外部キー）
 - **Comments.user_id → Users.id**（多対1, 外部キー）
 - **OperationLogs.user_id → Users.id**（多対1, 外部キー）
-- **Trash.user_id → Users.id**（多対1, 外部キー）
 
 ---
 
@@ -129,7 +115,6 @@
 - **is_deleted, allow_download, display_order** などは `NOT NULL DEFAULT 0` を推奨
 - **親（Picture）が論理削除された場合、紐づくCommentも論理削除する**
 - **Familiesテーブルで家族単位の管理が可能**
-- **Trashは論理削除フラグ＋一時保存用のテーブルとしてごみ箱機能を実現**
 - **OperationLogsで監査ログや操作履歴を保存**
 - **invite_codeは家族招待時の一意なコード（有効期限や利用済み管理は今後の拡張で対応）**
 
