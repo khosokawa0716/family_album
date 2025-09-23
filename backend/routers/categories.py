@@ -173,3 +173,60 @@ def update_category(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update category: {str(e)}")
+
+
+@router.delete("/categories/{category_id}")
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    カテゴリ削除API（管理者のみ）
+
+    管理者権限を持つ認証済みユーザーがカテゴリを削除できます。
+    - 管理者権限（type=10）が必要
+    - 削除対象カテゴリは認証ユーザーと同じfamily_idのもののみ
+    - 論理削除（status=0に更新）
+    - 既に削除済み（status=0）カテゴリは削除不可
+    - 削除時はupdate_dateが自動更新される
+    """
+    try:
+        # 管理者権限チェック
+        if current_user.type != 10:
+            raise HTTPException(status_code=403, detail="Admin access required")
+
+        # IDの妥当性チェック
+        if category_id <= 0:
+            raise HTTPException(status_code=422, detail="Category ID must be a positive integer")
+
+        # 削除対象カテゴリの取得（家族スコープで制限）
+        category = db.query(Category).filter(
+            Category.id == category_id,
+            Category.family_id == current_user.family_id
+        ).first()
+
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+        # 既に削除済みカテゴリのチェック
+        if category.status == 0:
+            raise HTTPException(status_code=404, detail="Category not found or already deleted")
+
+        # 論理削除の実行（status=0に更新）
+        category.status = 0
+
+        db.commit()
+        db.refresh(category)
+
+        return {
+            "message": "Category deleted successfully",
+            "category_id": category_id
+        }
+
+    except HTTPException:
+        # HTTPExceptionはそのまま再発生
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete category: {str(e)}")
