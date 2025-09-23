@@ -111,8 +111,8 @@ class TestPicturesDownload:
         self.active_picture.file_size = 1024000
         self.active_picture.status = 1  # 有効
         self.active_picture.uploaded_by = self.test_user.id
-        self.active_picture.created_at = datetime.now(timezone.utc)
-        self.active_picture.updated_at = datetime.now(timezone.utc)
+        self.active_picture.create_date = datetime.now(timezone.utc)
+        self.active_picture.update_date = datetime.now(timezone.utc)
         self.active_picture.deleted_at = None
 
         # 削除済み写真（ダウンロード不可）
@@ -126,8 +126,8 @@ class TestPicturesDownload:
         self.deleted_picture.file_size = 512000
         self.deleted_picture.status = 0  # 削除済み
         self.deleted_picture.uploaded_by = self.test_user.id
-        self.deleted_picture.created_at = datetime.now(timezone.utc)
-        self.deleted_picture.updated_at = datetime.now(timezone.utc)
+        self.deleted_picture.create_date = datetime.now(timezone.utc)
+        self.deleted_picture.update_date = datetime.now(timezone.utc)
         self.deleted_picture.deleted_at = datetime.now(timezone.utc)
 
         # 他の家族の写真
@@ -141,8 +141,8 @@ class TestPicturesDownload:
         self.other_family_picture.file_size = 2048000
         self.other_family_picture.status = 1
         self.other_family_picture.uploaded_by = 999
-        self.other_family_picture.created_at = datetime.now(timezone.utc)
-        self.other_family_picture.updated_at = datetime.now(timezone.utc)
+        self.other_family_picture.create_date = datetime.now(timezone.utc)
+        self.other_family_picture.update_date = datetime.now(timezone.utc)
         self.other_family_picture.deleted_at = None
 
         # テスト用ファイル内容

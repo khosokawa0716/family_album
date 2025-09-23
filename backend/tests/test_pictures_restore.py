@@ -72,8 +72,8 @@ class TestPicturesRestore:
         self.deleted_picture.title = "Deleted Picture"
         self.deleted_picture.status = 0  # 削除済み
         self.deleted_picture.uploaded_by = self.test_user.id
-        self.deleted_picture.created_at = datetime.now(timezone.utc)
-        self.deleted_picture.updated_at = datetime.now(timezone.utc)
+        self.deleted_picture.create_date = datetime.now(timezone.utc)
+        self.deleted_picture.update_date = datetime.now(timezone.utc)
         self.deleted_picture.deleted_at = datetime.now(timezone.utc)
 
         # 有効な写真（復元不可）
@@ -83,8 +83,8 @@ class TestPicturesRestore:
         self.active_picture.title = "Active Picture"
         self.active_picture.status = 1  # 有効
         self.active_picture.uploaded_by = self.test_user.id
-        self.active_picture.created_at = datetime.now(timezone.utc)
-        self.active_picture.updated_at = datetime.now(timezone.utc)
+        self.active_picture.create_date = datetime.now(timezone.utc)
+        self.active_picture.update_date = datetime.now(timezone.utc)
         self.active_picture.deleted_at = None
 
         # 他の家族の削除済み写真
@@ -94,8 +94,8 @@ class TestPicturesRestore:
         self.other_family_picture.title = "Other Family Picture"
         self.other_family_picture.status = 0
         self.other_family_picture.uploaded_by = 999
-        self.other_family_picture.created_at = datetime.now(timezone.utc)
-        self.other_family_picture.updated_at = datetime.now(timezone.utc)
+        self.other_family_picture.create_date = datetime.now(timezone.utc)
+        self.other_family_picture.update_date = datetime.now(timezone.utc)
         self.other_family_picture.deleted_at = datetime.now(timezone.utc)
 
     def teardown_method(self):
@@ -123,7 +123,7 @@ class TestPicturesRestore:
         # 復元処理が実行されたことを確認
         assert self.deleted_picture.status == 1
         assert self.deleted_picture.deleted_at is None
-        assert self.deleted_picture.updated_at is not None
+        assert self.deleted_picture.update_date is not None
         mock_db.commit.assert_called_once()
 
     def test_restore_response_format(self):
@@ -271,12 +271,12 @@ class TestPicturesRestore:
         app.dependency_overrides[get_db] = lambda: mock_db
         app.dependency_overrides[get_current_user] = lambda: self.test_user
 
-        original_updated_at = self.deleted_picture.updated_at
+        original_updated_at = self.deleted_picture.update_date
 
         response = self.client.patch(f"{self.base_url}/{self.deleted_picture.id}/restore")
 
         assert response.status_code == status.HTTP_200_OK
-        assert self.deleted_picture.updated_at != original_updated_at
+        assert self.deleted_picture.update_date != original_updated_at
 
     def test_other_fields_preservation(self):
         """他フィールド保持: 他の写真データの保持確認"""
@@ -291,7 +291,7 @@ class TestPicturesRestore:
         original_title = self.deleted_picture.title
         original_family_id = self.deleted_picture.family_id
         original_uploaded_by = self.deleted_picture.uploaded_by
-        original_created_at = self.deleted_picture.created_at
+        original_created_at = self.deleted_picture.create_date
 
         response = self.client.patch(f"{self.base_url}/{self.deleted_picture.id}/restore")
 
@@ -301,7 +301,7 @@ class TestPicturesRestore:
         assert self.deleted_picture.title == original_title
         assert self.deleted_picture.family_id == original_family_id
         assert self.deleted_picture.uploaded_by == original_uploaded_by
-        assert self.deleted_picture.created_at == original_created_at
+        assert self.deleted_picture.create_date == original_created_at
 
     # ========================================
     # 4. エラーハンドリング（4項目）

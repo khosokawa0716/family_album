@@ -16,6 +16,7 @@ CREATE TABLE pictures (
     status TINYINT NOT NULL DEFAULT 1 COMMENT '1: 有効, 0: 削除済み（ごみ箱）',
     create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL COMMENT '論理削除日時',
     FOREIGN KEY (uploaded_by) REFERENCES users(id),
     FOREIGN KEY (category_id) REFERENCES categories(id),
     INDEX idx_family_id (family_id),
@@ -26,5 +27,6 @@ CREATE TABLE pictures (
     INDEX idx_family_status (family_id, status),
     INDEX idx_family_category (family_id, category_id),
     INDEX idx_family_taken_date (family_id, taken_date),
+    INDEX idx_deleted_at (deleted_at),
     INDEX idx_search (family_id, status, taken_date, category_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

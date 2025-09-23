@@ -61,6 +61,7 @@ class Picture(Base):
     status = Column(SmallInteger, nullable=False, default=1)
     create_date = Column(DateTime, nullable=False, server_default=func.now())
     update_date = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    deleted_at = Column(DateTime, nullable=True)
 
 
 class Comment(Base):

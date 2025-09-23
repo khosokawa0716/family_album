@@ -391,7 +391,7 @@ async def upload_picture(
 
 @router.delete("/pictures/{picture_id}", status_code=204)
 def delete_picture(
-    picture_id: str,
+    picture_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -412,17 +412,10 @@ def delete_picture(
 
     Raises:
         HTTPException:
-            - 400: 不正なUUID形式
             - 404: 写真が見つからない、または他家族の写真
             - 404: 既に削除済み写真(status=0)
             - 500: データベース更新エラー
     """
-
-    # UUID形式検証
-    try:
-        uuid.UUID(picture_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid picture ID format")
 
     # 家族スコープでの写真取得（削除済みは除外）
     picture = db.query(Picture).filter(
@@ -440,7 +433,7 @@ def delete_picture(
     try:
         picture.status = 0
         picture.deleted_at = datetime.utcnow()
-        picture.updated_at = datetime.utcnow()
+        picture.update_date = datetime.utcnow()
 
         db.commit()
         logger.info(f"Picture deleted: ID={picture_id}, User={current_user.id}")
@@ -495,7 +488,7 @@ def restore_picture(
     try:
         picture.status = 1
         picture.deleted_at = None
-        picture.updated_at = datetime.utcnow()
+        picture.update_date = datetime.utcnow()
 
         db.commit()
         logger.info(f"Picture restored: ID={picture_id}, User={current_user.id}")

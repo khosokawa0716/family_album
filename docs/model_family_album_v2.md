@@ -46,18 +46,25 @@
 
 ## Pictures
 
-| カラム名        | 型             | 制約                         | 説明                     |
-|----------------|----------------|------------------------------|--------------------------|
-| id             | int            | PK, AUTO_INCREMENT           | 画像ID                   |
-| image_path     | varchar(255)   | NOT NULL                     | 画像ファイルパス         |
-| display_order  | int            | NOT NULL, default:0          | 表示順                   |
-| user_id        | int            | NOT NULL, FK                 | 投稿ユーザーID           |
-| category_id    | int            | FK                           | カテゴリID（外部キー）   |
-| is_deleted     | tinyint        | NOT NULL, default:0          | 論理削除フラグ           |
-| allow_download | tinyint        | NOT NULL, default:0          | ダウンロード許可         |
-| delete_date    | datetime       |                              | 削除日時                 |
-| create_date    | datetime       | NOT NULL                     | 作成日時                 |
-| update_date    | datetime       | NOT NULL                     | 更新日時                 |
+| カラム名          | 型             | 制約                         | 説明                     |
+|-----------------|----------------|------------------------------|--------------------------|
+| id              | int            | PK, AUTO_INCREMENT           | 画像ID                   |
+| family_id       | int            | NOT NULL                     | 家族ID                   |
+| uploaded_by     | int            | NOT NULL, FK                 | 投稿ユーザーID           |
+| title           | varchar(255)   |                              | 写真タイトル             |
+| description     | text           |                              | 写真説明                 |
+| file_path       | varchar(500)   | NOT NULL                     | 画像ファイルパス         |
+| thumbnail_path  | varchar(500)   |                              | サムネイルパス           |
+| file_size       | int            |                              | ファイルサイズ           |
+| mime_type       | varchar(100)   |                              | MIMEタイプ               |
+| width           | int            |                              | 画像幅                   |
+| height          | int            |                              | 画像高さ                 |
+| taken_date      | datetime       |                              | 撮影日時                 |
+| category_id     | int            | FK                           | カテゴリID（外部キー）   |
+| status          | tinyint        | NOT NULL, default:1          | ステータス（1: 有効, 0: 削除済み）|
+| create_date     | datetime       | NOT NULL                     | 作成日時                 |
+| update_date     | datetime       | NOT NULL                     | 更新日時                 |
+| deleted_at      | datetime       |                              | 論理削除日時             |
 
 ---
 

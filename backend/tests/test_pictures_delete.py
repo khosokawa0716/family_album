@@ -53,7 +53,7 @@ DELETE /api/pictures/:id APIのテストファイル（写真削除）
 【データベース操作】(4項目)
 - test_status_updated_to_zero: statusが0に更新される
 - test_deleted_at_set_to_current_time: deleted_atが現在時刻に設定される
-- test_updated_at_refreshed: updated_atの更新確認
+- test_updated_at_refreshed: update_dateの更新確認
 - test_other_fields_unchanged: 他のフィールドは変更されない
 
 【レスポンス・エラーハンドリング】(3項目)
@@ -102,8 +102,8 @@ class TestPicturesDelete:
         self.test_picture.title = "Test Picture"
         self.test_picture.status = 1
         self.test_picture.uploaded_by = self.test_user.id
-        self.test_picture.created_at = datetime.now(timezone.utc)
-        self.test_picture.updated_at = datetime.now(timezone.utc)
+        self.test_picture.create_date = datetime.now(timezone.utc)
+        self.test_picture.update_date = datetime.now(timezone.utc)
         self.test_picture.deleted_at = None
 
         # 他の家族の写真
@@ -113,8 +113,8 @@ class TestPicturesDelete:
         self.other_family_picture.title = "Other Family Picture"
         self.other_family_picture.status = 1
         self.other_family_picture.uploaded_by = 999
-        self.other_family_picture.created_at = datetime.now(timezone.utc)
-        self.other_family_picture.updated_at = datetime.now(timezone.utc)
+        self.other_family_picture.create_date = datetime.now(timezone.utc)
+        self.other_family_picture.update_date = datetime.now(timezone.utc)
 
         # 削除済み写真
         self.deleted_picture = MagicMock(spec=Picture)
@@ -123,8 +123,8 @@ class TestPicturesDelete:
         self.deleted_picture.title = "Deleted Picture"
         self.deleted_picture.status = 0  # 削除済み
         self.deleted_picture.uploaded_by = self.test_user.id
-        self.deleted_picture.created_at = datetime.now(timezone.utc)
-        self.deleted_picture.updated_at = datetime.now(timezone.utc)
+        self.deleted_picture.create_date = datetime.now(timezone.utc)
+        self.deleted_picture.update_date = datetime.now(timezone.utc)
         self.deleted_picture.deleted_at = datetime.now(timezone.utc)
 
     def teardown_method(self):
@@ -188,7 +188,7 @@ class TestPicturesDelete:
         # 削除処理が呼ばれたことを確認
         assert self.test_picture.status == 0
         assert self.test_picture.deleted_at is not None
-        assert self.test_picture.updated_at is not None
+        assert self.test_picture.update_date is not None
         mock_db.commit.assert_called_once()
 
     def test_delete_other_family_picture_forbidden(self):
@@ -271,7 +271,7 @@ class TestPicturesDelete:
         # 削除後の状態確認
         assert self.test_picture.status == 0
         assert self.test_picture.deleted_at is not None
-        assert self.test_picture.updated_at is not None
+        assert self.test_picture.update_date is not None
 
         # タイムスタンプが現在時刻に近い値であることを確認
         now = datetime.now(timezone.utc)
@@ -321,7 +321,7 @@ class TestPicturesDelete:
         assert time_diff < 5
 
     def test_updated_at_refreshed(self):
-        """updated_atが更新される"""
+        """update_dateが更新される"""
         mock_db = Mock()
         mock_db.query.return_value.filter.return_value.first.return_value = self.test_picture
         mock_db.commit.return_value = None
@@ -329,13 +329,13 @@ class TestPicturesDelete:
         app.dependency_overrides[get_db] = lambda: mock_db
         app.dependency_overrides[get_current_user] = lambda: self.test_user
 
-        original_updated_at = self.test_picture.updated_at
+        original_updated_at = self.test_picture.update_date
 
         response = self.client.delete(f"{self.base_url}/{self.test_picture.id}")
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert self.test_picture.updated_at != original_updated_at
-        assert self.test_picture.updated_at is not None
+        assert self.test_picture.update_date != original_updated_at
+        assert self.test_picture.update_date is not None
 
     def test_other_fields_unchanged(self):
         """他のフィールドは変更されない"""
@@ -350,7 +350,7 @@ class TestPicturesDelete:
         original_title = self.test_picture.title
         original_family_id = self.test_picture.family_id
         original_uploaded_by = self.test_picture.uploaded_by
-        original_created_at = self.test_picture.created_at
+        original_created_at = self.test_picture.create_date
 
         response = self.client.delete(f"{self.base_url}/{self.test_picture.id}")
 
@@ -360,7 +360,7 @@ class TestPicturesDelete:
         assert self.test_picture.title == original_title
         assert self.test_picture.family_id == original_family_id
         assert self.test_picture.uploaded_by == original_uploaded_by
-        assert self.test_picture.created_at == original_created_at
+        assert self.test_picture.create_date == original_created_at
 
     # ========================================
     # 5. レスポンステスト（3項目）
