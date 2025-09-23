@@ -71,7 +71,6 @@ from fastapi.testclient import TestClient
 from fastapi import status
 from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime, timezone
-import uuid
 
 from main import app
 from models import User, Picture
@@ -97,7 +96,7 @@ class TestPicturesDelete:
 
         # テスト用写真の設定
         self.test_picture = MagicMock(spec=Picture)
-        self.test_picture.id = str(uuid.uuid4())
+        self.test_picture.id = 1
         self.test_picture.family_id = self.test_user.family_id
         self.test_picture.title = "Test Picture"
         self.test_picture.status = 1
@@ -108,7 +107,7 @@ class TestPicturesDelete:
 
         # 他の家族の写真
         self.other_family_picture = MagicMock(spec=Picture)
-        self.other_family_picture.id = str(uuid.uuid4())
+        self.other_family_picture.id = 999
         self.other_family_picture.family_id = 999  # 異なる家族ID
         self.other_family_picture.title = "Other Family Picture"
         self.other_family_picture.status = 1
@@ -118,7 +117,7 @@ class TestPicturesDelete:
 
         # 削除済み写真
         self.deleted_picture = MagicMock(spec=Picture)
-        self.deleted_picture.id = str(uuid.uuid4())
+        self.deleted_picture.id = 2
         self.deleted_picture.family_id = self.test_user.family_id
         self.deleted_picture.title = "Deleted Picture"
         self.deleted_picture.status = 0  # 削除済み
@@ -212,7 +211,7 @@ class TestPicturesDelete:
         app.dependency_overrides[get_db] = lambda: mock_db
         app.dependency_overrides[get_current_user] = lambda: self.test_user
 
-        nonexistent_id = str(uuid.uuid4())
+        nonexistent_id = 9999
         response = self.client.delete(f"{self.base_url}/{nonexistent_id}")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -389,7 +388,7 @@ class TestPicturesDelete:
         app.dependency_overrides[get_db] = lambda: mock_db
         app.dependency_overrides[get_current_user] = lambda: self.test_user
 
-        response = self.client.delete(f"{self.base_url}/{str(uuid.uuid4())}")
+        response = self.client.delete(f"{self.base_url}/8888")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "detail" in response.json()
@@ -432,16 +431,15 @@ class TestPicturesDelete:
         # ロールバックが呼ばれたことを確認
         mock_db.rollback.assert_called_once()
 
-    def test_invalid_uuid_format_error(self):
-        """不正なUUID形式でのエラー（400）"""
+    def test_invalid_id_format_error(self):
+        """不正なID形式でのエラー（422）"""
         mock_db = Mock()
         app.dependency_overrides[get_db] = lambda: mock_db
         app.dependency_overrides[get_current_user] = lambda: self.test_user
 
-        invalid_ids = ["not-a-uuid", "123", "invalid-uuid-format"]
+        invalid_ids = ["not-a-number", "abc", "invalid-id-format"]
 
         for invalid_id in invalid_ids:
             response = self.client.delete(f"{self.base_url}/{invalid_id}")
-            # 認証後にUUID検証が行われ、400エラーが返される
-            assert response.status_code == status.HTTP_400_BAD_REQUEST
-            assert response.json()["detail"] == "Invalid picture ID format"
+            # FastAPIによる型バリデーションエラー
+            assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

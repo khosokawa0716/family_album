@@ -156,6 +156,7 @@ def get_picture_detail(
             - 404: 写真が見つからない、または他家族の写真
             - 404: 削除済み写真(status=0)
     """
+
     # 家族スコープでの写真取得（削除済みは除外）
     picture = db.query(Picture).filter(
         and_(

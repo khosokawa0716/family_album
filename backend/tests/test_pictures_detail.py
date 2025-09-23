@@ -74,6 +74,10 @@ client = TestClient(app)
 class TestPicturesDetailAPI:
     """GET /api/pictures/:id APIのテストクラス"""
 
+    def teardown_method(self):
+        """各テストメソッド実行後のクリーンアップ"""
+        app.dependency_overrides.clear()
+
     def create_test_token(self, user_id: int, family_id: int, user_type: int = 0,
                          status: int = 1, exp_minutes: int = 30):
         """テスト用JWTトークン作成"""
