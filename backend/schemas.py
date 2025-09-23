@@ -90,6 +90,31 @@ class LogoutResponse(BaseModel):
     message: str
 
 
+class CategoryCreateRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Category name cannot be empty')
+        if len(v.strip()) < 2:
+            raise ValueError('Category name must be at least 2 characters long')
+        if len(v) > 50:
+            raise ValueError('Category name must be 50 characters or less')
+        return v.strip()
+
+    @field_validator('description')
+    @classmethod
+    def validate_description(cls, v):
+        if v is not None and len(v.strip()) == 0:
+            return None
+        if v is not None and len(v) > 500:
+            raise ValueError('Category description must be 500 characters or less')
+        return v.strip() if v is not None else None
+
+
 class CategoryResponse(BaseModel):
     id: int
     family_id: int
