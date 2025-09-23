@@ -115,6 +115,31 @@ class CategoryCreateRequest(BaseModel):
         return v.strip() if v is not None else None
 
 
+class CategoryUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v):
+        if v is not None and (not v or len(v.strip()) == 0):
+            raise ValueError('Category name cannot be empty')
+        if v is not None and len(v.strip()) < 2:
+            raise ValueError('Category name must be at least 2 characters long')
+        if v is not None and len(v) > 50:
+            raise ValueError('Category name must be 50 characters or less')
+        return v.strip() if v is not None else None
+
+    @field_validator('description')
+    @classmethod
+    def validate_description(cls, v):
+        if v is not None and len(v.strip()) == 0:
+            return None
+        if v is not None and len(v) > 500:
+            raise ValueError('Category description must be 500 characters or less')
+        return v.strip() if v is not None else None
+
+
 class CategoryResponse(BaseModel):
     id: int
     family_id: int
