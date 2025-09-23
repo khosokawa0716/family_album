@@ -261,3 +261,15 @@ class CommentResponse(BaseModel):
             create_date=comment.create_date,
             update_date=comment.update_date
         )
+
+
+class OperationLogResponse(BaseModel):
+    id: int
+    user_id: int
+    operation: str
+    target_type: str
+    target_id: Optional[int]
+    detail: Optional[str]
+    create_date: datetime
+
+    model_config = ConfigDict(from_attributes=True)
