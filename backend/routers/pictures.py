@@ -783,3 +783,63 @@ def update_comment(
         logger.error(f"Failed to update comment {comment_id}: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to update comment")
+
+
+@router.delete("/comments/{comment_id}", status_code=204)
+def delete_comment(
+    comment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    コメント削除API（論理削除）
+
+    指定されたIDのコメントを論理削除する。
+    コメントの作成者のみが削除可能。
+    家族スコープでのアクセス制御により、自分の家族の写真のコメントのみ削除可能。
+    削除済みコメント（is_deleted=1）は削除不可。
+
+    Args:
+        comment_id: 削除するコメントのID
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+
+    Returns:
+        204 No Content: 削除成功
+
+    Raises:
+        HTTPException:
+            - 404: コメントが見つからない、削除済みコメント、または他家族のコメント
+            - 403: コメントの作成者以外がアクセス
+            - 500: データベース更新エラー
+    """
+
+    # 家族スコープでのコメント取得（削除済みは除外）
+    # 写真を経由して家族スコープをチェック
+    comment = db.query(Comment).join(Picture, Comment.picture_id == Picture.id).filter(
+        and_(
+            Comment.id == comment_id,
+            Comment.is_deleted == 0,
+            Picture.family_id == current_user.family_id
+        )
+    ).first()
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    # コメント作成者のみ削除可能
+    if comment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only delete your own comments")
+
+    # コメント削除処理（論理削除）
+    try:
+        comment.is_deleted = 1
+        comment.update_date = datetime.utcnow()
+
+        db.commit()
+        logger.info(f"Comment deleted: ID={comment_id}, User={current_user.id}")
+
+    except Exception as e:
+        logger.error(f"Failed to delete comment {comment_id}: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to delete comment")
