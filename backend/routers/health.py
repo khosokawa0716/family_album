@@ -4,11 +4,7 @@ from sqlalchemy import text
 
 router = APIRouter(tags=["health"])
 
-@router.get("/")
-def read_root():
-    return {"message": "Hello from FastAPI backend!"}
-
-@router.get("/health")
+@router.get("/api/health")
 def health_check():
     result = db.session.execute(text("SELECT message FROM health_check LIMIT 1")).fetchone()
     if result:

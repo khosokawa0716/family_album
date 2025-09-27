@@ -13,22 +13,28 @@ class ApiError extends Error {
 class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "http://localhost:8080") {
+  constructor(baseUrl: string = "http://localhost:8080/api") {
     this.baseUrl = baseUrl;
   }
 
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-
+    const token = sessionStorage.getItem("access_token");
     const response = await globalThis.fetch(url, {
       headers: {
         "Content-Type": "application/json",
         ...options.headers,
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
       },
       ...options,
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // トークンが無効または期限切れの場合、ログインページにリダイレクト
+        window.location.href = "/login";
+        return Promise.reject(new ApiError("Unauthorized", 401, "Unauthorized"));
+      }
       throw new ApiError(
         `HTTP error! status: ${response.status}`,
         response.status,

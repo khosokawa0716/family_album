@@ -3,6 +3,6 @@ import { HealthResponse } from "../types/api";
 
 export const healthService = {
   async getHealthStatus(): Promise<HealthResponse> {
-    return apiClient.get<HealthResponse>("/api/health");
+    return apiClient.get<HealthResponse>("/health");
   },
 };

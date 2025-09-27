@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { apiClient } from "../lib/api/client";
 
 interface LoginRequest {
   user_name: string;
@@ -33,24 +34,13 @@ export const useLogin = () => {
     setError(null);
 
     try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(loginData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "ログインに失敗しました");
+      const data = await apiClient.post<LoginResponse>("/login", loginData);
+      if (!data.access_token) {
+        throw new Error("ログインに失敗しました");
       }
-
-      const data: LoginResponse = await response.json();
-
-      // トークンをローカルストレージに保存
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // トークンをセッションストレージに保存
+      sessionStorage.setItem("access_token", data.access_token);
+      sessionStorage.setItem("user", JSON.stringify(data.user));
 
       // ユーザー情報表示ページに遷移
       router.push("/tmp");
@@ -62,8 +52,8 @@ export const useLogin = () => {
   };
 
   const logout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("user");
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("user");
     router.push("/login");
   };
 

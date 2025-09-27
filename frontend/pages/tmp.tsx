@@ -20,8 +20,8 @@ export default function TmpUserPage() {
 
   useEffect(() => {
     // ローカルストレージからユーザー情報を取得
-    const token = localStorage.getItem("access_token");
-    const user = localStorage.getItem("user");
+    const token = sessionStorage.getItem("access_token");
+    const user = sessionStorage.getItem("user");
 
     if (!token || !user) {
       // トークンまたはユーザー情報がない場合はログインページにリダイレクト
