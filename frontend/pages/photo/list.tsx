@@ -65,8 +65,8 @@ export default function PhotoList() {
               onClick={() => console.log(`Photo ${photo.id} clicked`)}
             >
               <img
-                src={photo.thumbnail_path}
-                alt={photo.title}
+                src={photo.thumbnail_path || ''}
+                alt={photo.title || 'Photo'}
                 className="w-full h-48 object-cover rounded-t-lg"
               />
               <div className="p-4">

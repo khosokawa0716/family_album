@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { pictureService } from "@/services/pictures";
 
 export const usePhotoUpload = () => {
   const router = useRouter();
@@ -38,12 +39,11 @@ export const usePhotoUpload = () => {
     setIsUploading(true);
 
     try {
-      // TODO: Implement upload logic
-      console.log("Uploading file:", selectedFile.name);
-      console.log("Category:", selectedCategory);
+      const formData = new FormData();
+      formData.append("picture", selectedFile);
+      formData.append("category_id", selectedCategory);
 
-      // Simulate upload
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await pictureService.uploadPicture(formData);
 
       // Redirect to photo list
       router.push("/photo/list");
