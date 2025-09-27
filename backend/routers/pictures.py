@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, 
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, extract, desc
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime
 from PIL import Image, ExifTags
 import uuid
@@ -16,6 +16,7 @@ from models import Picture, User, Category
 from schemas import PictureListResponse, PictureResponse
 from dependencies import get_current_user
 from config.storage import get_storage_config, StorageConfig
+from utils.url_signature import verify_url_signature, get_signature_info, create_signed_url
 
 router = APIRouter(prefix="/api", tags=["pictures"])
 logger = logging.getLogger(__name__)
@@ -119,23 +120,25 @@ def get_pictures(
     # ページネーション適用
     pictures = query.offset(offset).limit(limit).all()
 
-    # APIのURLを生成するため、レスポンス用のデータを作成
+    # 署名付きURLを生成するため、レスポンス用のデータを作成
     picture_responses = []
     for picture in pictures:
-        # ファイル名を取得してURLを生成
+        # ファイル名を取得して署名付きURLを生成
         filename = os.path.basename(picture.file_path)
-        thumbnail_url = f"/api/thumbnails/thumb_{filename}"
-        photo_url = f"/api/photos/{filename}"
 
-        # PictureResponseオブジェクトを作成（両方ともAPIのURLを設定）
+        # 署名付きURL生成（30分有効）
+        thumbnail_url = create_signed_url(f"thumb_{filename}", "thumbnails", expires_in=1800)
+        photo_url = create_signed_url(filename, "photos", expires_in=1800)
+
+        # PictureResponseオブジェクトを作成（署名付きURLを設定）
         picture_data = {
             "id": picture.id,
             "family_id": picture.family_id,
             "uploaded_by": picture.uploaded_by,
             "title": picture.title,
             "description": picture.description,
-            "file_path": photo_url,  # オリジナル画像APIのURLを設定
-            "thumbnail_path": thumbnail_url,  # サムネイル画像APIのURLを設定
+            "file_path": photo_url,  # 署名付きオリジナル画像URL
+            "thumbnail_path": thumbnail_url,  # 署名付きサムネイルURL
             "file_size": picture.file_size,
             "mime_type": picture.mime_type,
             "width": picture.width,
@@ -198,20 +201,22 @@ def get_picture_detail(
     if not picture:
         raise HTTPException(status_code=404, detail="Picture not found")
 
-    # APIのURLを生成してレスポンスデータを作成
+    # 署名付きURLを生成してレスポンスデータを作成
     filename = os.path.basename(picture.file_path)
-    thumbnail_url = f"/api/thumbnails/thumb_{filename}"
-    photo_url = f"/api/photos/{filename}"
 
-    # PictureResponseオブジェクトを作成（両方ともAPIのURLを設定）
+    # 署名付きURL生成（30分有効）
+    thumbnail_url = create_signed_url(f"thumb_{filename}", "thumbnails", expires_in=1800)
+    photo_url = create_signed_url(filename, "photos", expires_in=1800)
+
+    # PictureResponseオブジェクトを作成（署名付きURLを設定）
     picture_data = {
         "id": picture.id,
         "family_id": picture.family_id,
         "uploaded_by": picture.uploaded_by,
         "title": picture.title,
         "description": picture.description,
-        "file_path": photo_url,  # オリジナル画像APIのURLを設定
-        "thumbnail_path": thumbnail_url,  # サムネイル画像APIのURLを設定
+        "file_path": photo_url,  # 署名付きオリジナル画像URL
+        "thumbnail_path": thumbnail_url,  # 署名付きサムネイルURL
         "file_size": picture.file_size,
         "mime_type": picture.mime_type,
         "width": picture.width,
@@ -644,20 +649,22 @@ def download_picture(
 @router.get("/thumbnails/{filename}")
 def get_thumbnail_by_filename(
     filename: str,
+    signature: Optional[str] = Query(None),
+    expires: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     storage_config: StorageConfig = Depends(get_storage_config)
 ):
     """
     サムネイル画像配信API（ファイル名指定）
 
-    指定されたファイル名のサムネイル画像を配信する。
-    家族スコープでのアクセス制御により、自分の家族の写真のサムネイルのみアクセス可能。
+    署名付きURLによる安全なサムネイル画像配信。
+    有効な署名と期限内のリクエストのみアクセス可能。
 
     Args:
         filename: サムネイルファイル名
+        signature: URL署名（HMAC-SHA256）
+        expires: 有効期限（UNIX時間）
         db: データベースセッション
-        current_user: 認証済みユーザー情報
         storage_config: ストレージ設定
 
     Returns:
@@ -665,11 +672,19 @@ def get_thumbnail_by_filename(
 
     Raises:
         HTTPException:
-            - 404: ファイルが見つからない、または他家族の写真
-            - 404: 削除済み写真(status=0)
+            - 403: 署名が無効または期限切れ
+            - 404: ファイルが見つからない
             - 404: ファイルが物理的に存在しない
             - 500: ファイル読み込みエラー
     """
+
+    # 署名検証
+    sig, exp = get_signature_info(signature, expires)
+    if not sig or not exp:
+        raise HTTPException(status_code=403, detail="Missing or invalid signature parameters")
+
+    if not verify_url_signature(filename, "thumbnails", sig, exp):
+        raise HTTPException(status_code=403, detail="Invalid or expired signature")
 
     # サムネイルファイル名から元の写真ファイル名を推定
     # サムネイルは通常 "thumb_original_filename.ext" の形式
@@ -677,11 +692,10 @@ def get_thumbnail_by_filename(
     if filename.startswith("thumb_"):
         original_filename = filename[6:]  # "thumb_" を除去
 
-    # 家族スコープでの写真取得（削除済みは除外）
+    # 写真の存在確認（削除済みは除外）
     picture = db.query(Picture).filter(
         and_(
             Picture.file_path.endswith(original_filename),
-            Picture.family_id == current_user.family_id,
             Picture.status == 1
         )
     ).first()
@@ -729,20 +743,22 @@ def get_thumbnail_by_filename(
 @router.get("/photos/{filename}")
 def get_photo_by_filename(
     filename: str,
+    signature: Optional[str] = Query(None),
+    expires: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     storage_config: StorageConfig = Depends(get_storage_config)
 ):
     """
     オリジナル画像配信API（ファイル名指定）
 
-    指定されたファイル名のオリジナル画像を配信する。
-    家族スコープでのアクセス制御により、自分の家族の写真のみアクセス可能。
+    署名付きURLによる安全なオリジナル画像配信。
+    有効な署名と期限内のリクエストのみアクセス可能。
 
     Args:
         filename: 画像ファイル名
+        signature: URL署名（HMAC-SHA256）
+        expires: 有効期限（UNIX時間）
         db: データベースセッション
-        current_user: 認証済みユーザー情報
         storage_config: ストレージ設定
 
     Returns:
@@ -750,17 +766,24 @@ def get_photo_by_filename(
 
     Raises:
         HTTPException:
-            - 404: ファイルが見つからない、または他家族の写真
-            - 404: 削除済み写真(status=0)
+            - 403: 署名が無効または期限切れ
+            - 404: ファイルが見つからない
             - 404: ファイルが物理的に存在しない
             - 500: ファイル読み込みエラー
     """
 
-    # 家族スコープでの写真取得（削除済みは除外）
+    # 署名検証
+    sig, exp = get_signature_info(signature, expires)
+    if not sig or not exp:
+        raise HTTPException(status_code=403, detail="Missing or invalid signature parameters")
+
+    if not verify_url_signature(filename, "photos", sig, exp):
+        raise HTTPException(status_code=403, detail="Invalid or expired signature")
+
+    # 写真の存在確認（削除済みは除外）
     picture = db.query(Picture).filter(
         and_(
             Picture.file_path.endswith(filename),
-            Picture.family_id == current_user.family_id,
             Picture.status == 1
         )
     ).first()

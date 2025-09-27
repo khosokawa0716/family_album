@@ -3,8 +3,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from auth import get_user_by_username
 from config import SECRET_KEY, ALGORITHM
+from typing import Optional
 
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     credentials_exception = HTTPException(
@@ -23,4 +25,32 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     user = get_user_by_username(username)
     if user is None:
         raise credentials_exception
+    return user
+
+
+def get_current_user_optional(credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security)) -> Optional:
+    """
+    オプション認証関数
+
+    認証情報がある場合はユーザーを返し、ない場合はNoneを返す。
+    エラーは発生させない。
+
+    Args:
+        credentials: JWTトークン（オプション）
+
+    Returns:
+        User | None: 認証済みユーザーまたはNone
+    """
+    if credentials is None:
+        return None
+
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+    except JWTError:
+        return None
+
+    user = get_user_by_username(username)
     return user

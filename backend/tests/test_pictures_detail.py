@@ -234,7 +234,8 @@ class TestPicturesDetailAPI:
             assert data["id"] == 1
             assert data["title"] == "Test Picture"
             assert data["family_id"] == 1
-            assert data["file_path"] == "/path/to/test.jpg"
+            assert data["file_path"].startswith("/api/photos/test.jpg?signature=")
+            assert "expires=" in data["file_path"]
         finally:
             self.teardown_dependency_overrides()
 
