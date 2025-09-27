@@ -1,10 +1,5 @@
 from unittest.mock import MagicMock
 
-def test_read_root(client):
-    response = client.get("/")
-    assert response.status_code == 200
-    assert response.json() == {"message": "Hello from FastAPI backend!"}
-
 def test_health_check(client, monkeypatch):
     mock_result = ("テストメッセージ",)
     mock_execute = MagicMock()
@@ -13,6 +8,6 @@ def test_health_check(client, monkeypatch):
     from database import db
     monkeypatch.setattr(db.session, "execute", lambda *a, **kw: mock_execute)
 
-    response = client.get("/health")
+    response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "message": "テストメッセージ"}
