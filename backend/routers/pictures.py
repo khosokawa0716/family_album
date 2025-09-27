@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, extract, desc
+from sqlalchemy import and_, extract, desc
 from typing import Optional
 from datetime import datetime
 from PIL import Image, ExifTags
@@ -119,11 +119,40 @@ def get_pictures(
     # ページネーション適用
     pictures = query.offset(offset).limit(limit).all()
 
+    # APIのURLを生成するため、レスポンス用のデータを作成
+    picture_responses = []
+    for picture in pictures:
+        # ファイル名を取得してURLを生成
+        filename = os.path.basename(picture.file_path)
+        thumbnail_url = f"/api/thumbnails/thumb_{filename}"
+        photo_url = f"/api/photos/{filename}"
+
+        # PictureResponseオブジェクトを作成（両方ともAPIのURLを設定）
+        picture_data = {
+            "id": picture.id,
+            "family_id": picture.family_id,
+            "uploaded_by": picture.uploaded_by,
+            "title": picture.title,
+            "description": picture.description,
+            "file_path": photo_url,  # オリジナル画像APIのURLを設定
+            "thumbnail_path": thumbnail_url,  # サムネイル画像APIのURLを設定
+            "file_size": picture.file_size,
+            "mime_type": picture.mime_type,
+            "width": picture.width,
+            "height": picture.height,
+            "taken_date": picture.taken_date,
+            "category_id": picture.category_id,
+            "status": picture.status,
+            "create_date": picture.create_date,
+            "update_date": picture.update_date
+        }
+        picture_responses.append(picture_data)
+
     # 次ページ存在判定
     has_more = (offset + limit) < total
 
     return PictureListResponse(
-        pictures=pictures,
+        pictures=picture_responses,
         total=total,
         limit=limit,
         offset=offset,
@@ -169,7 +198,32 @@ def get_picture_detail(
     if not picture:
         raise HTTPException(status_code=404, detail="Picture not found")
 
-    return picture
+    # APIのURLを生成してレスポンスデータを作成
+    filename = os.path.basename(picture.file_path)
+    thumbnail_url = f"/api/thumbnails/thumb_{filename}"
+    photo_url = f"/api/photos/{filename}"
+
+    # PictureResponseオブジェクトを作成（両方ともAPIのURLを設定）
+    picture_data = {
+        "id": picture.id,
+        "family_id": picture.family_id,
+        "uploaded_by": picture.uploaded_by,
+        "title": picture.title,
+        "description": picture.description,
+        "file_path": photo_url,  # オリジナル画像APIのURLを設定
+        "thumbnail_path": thumbnail_url,  # サムネイル画像APIのURLを設定
+        "file_size": picture.file_size,
+        "mime_type": picture.mime_type,
+        "width": picture.width,
+        "height": picture.height,
+        "taken_date": picture.taken_date,
+        "category_id": picture.category_id,
+        "status": picture.status,
+        "create_date": picture.create_date,
+        "update_date": picture.update_date
+    }
+
+    return picture_data
 
 
 @router.post("/pictures", response_model=PictureResponse, status_code=201)
@@ -568,7 +622,7 @@ def download_picture(
         raise HTTPException(status_code=500, detail="Failed to read file")
 
     # ファイル名の準備（安全性のため、元のファイル名を使用）
-    safe_filename = picture.file_name or f"picture_{picture_id}.jpg"
+    safe_filename = os.path.basename(picture.file_path) or f"picture_{picture_id}.jpg"
 
     try:
         # FileResponseを返す
@@ -585,5 +639,173 @@ def download_picture(
     except Exception as e:
         logger.error(f"Failed to create file response for {file_path}: {e}")
         raise HTTPException(status_code=500, detail="Failed to serve file")
+
+
+@router.get("/thumbnails/{filename}")
+def get_thumbnail_by_filename(
+    filename: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    storage_config: StorageConfig = Depends(get_storage_config)
+):
+    """
+    サムネイル画像配信API（ファイル名指定）
+
+    指定されたファイル名のサムネイル画像を配信する。
+    家族スコープでのアクセス制御により、自分の家族の写真のサムネイルのみアクセス可能。
+
+    Args:
+        filename: サムネイルファイル名
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+        storage_config: ストレージ設定
+
+    Returns:
+        FileResponse: サムネイル画像ファイル
+
+    Raises:
+        HTTPException:
+            - 404: ファイルが見つからない、または他家族の写真
+            - 404: 削除済み写真(status=0)
+            - 404: ファイルが物理的に存在しない
+            - 500: ファイル読み込みエラー
+    """
+
+    # サムネイルファイル名から元の写真ファイル名を推定
+    # サムネイルは通常 "thumb_original_filename.ext" の形式
+    original_filename = filename
+    if filename.startswith("thumb_"):
+        original_filename = filename[6:]  # "thumb_" を除去
+
+    # 家族スコープでの写真取得（削除済みは除外）
+    picture = db.query(Picture).filter(
+        and_(
+            Picture.file_path.endswith(original_filename),
+            Picture.family_id == current_user.family_id,
+            Picture.status == 1
+        )
+    ).first()
+
+    if not picture:
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
+
+    # サムネイルファイルパス取得
+    thumbnail_path = storage_config.get_thumbnail_file_path(filename)
+
+    # ファイル存在確認
+    if not thumbnail_path.exists():
+        logger.error(f"Thumbnail file not found: {thumbnail_path}")
+        raise HTTPException(status_code=404, detail="Thumbnail file not found")
+
+    # ファイル読み込み可能性確認
+    try:
+        file_stat = thumbnail_path.stat()
+        file_size = file_stat.st_size
+
+        # ファイルが読み込み可能かテスト
+        with open(thumbnail_path, 'rb') as f:
+            f.read(1)  # 1バイト読み込みテスト
+
+    except (OSError, IOError) as e:
+        logger.error(f"Failed to read thumbnail file {thumbnail_path}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to read thumbnail file")
+
+    try:
+        # FileResponseを返す（サムネイル用の適切なヘッダー設定）
+        return FileResponse(
+            path=str(thumbnail_path),
+            media_type=picture.mime_type,
+            headers={
+                "Content-Length": str(file_size),
+                "Cache-Control": "public, max-age=86400"  # 24時間キャッシュ（サムネイルは長期キャッシュ）
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to create file response for thumbnail {thumbnail_path}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to serve thumbnail file")
+
+
+@router.get("/photos/{filename}")
+def get_photo_by_filename(
+    filename: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    storage_config: StorageConfig = Depends(get_storage_config)
+):
+    """
+    オリジナル画像配信API（ファイル名指定）
+
+    指定されたファイル名のオリジナル画像を配信する。
+    家族スコープでのアクセス制御により、自分の家族の写真のみアクセス可能。
+
+    Args:
+        filename: 画像ファイル名
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+        storage_config: ストレージ設定
+
+    Returns:
+        FileResponse: オリジナル画像ファイル
+
+    Raises:
+        HTTPException:
+            - 404: ファイルが見つからない、または他家族の写真
+            - 404: 削除済み写真(status=0)
+            - 404: ファイルが物理的に存在しない
+            - 500: ファイル読み込みエラー
+    """
+
+    # 家族スコープでの写真取得（削除済みは除外）
+    picture = db.query(Picture).filter(
+        and_(
+            Picture.file_path.endswith(filename),
+            Picture.family_id == current_user.family_id,
+            Picture.status == 1
+        )
+    ).first()
+
+    if not picture:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    # ファイルパス取得（絶対パス）
+    file_path = storage_config.get_photo_file_path(filename)
+
+    # ファイル存在確認
+    if not file_path.exists():
+        logger.error(f"Photo file not found: {file_path}")
+        raise HTTPException(status_code=404, detail="Photo file not found")
+
+    # ファイル読み込み可能性確認
+    try:
+        file_stat = file_path.stat()
+        file_size = file_stat.st_size
+
+        # ファイルが読み込み可能かテスト
+        with open(file_path, 'rb') as f:
+            f.read(1)  # 1バイト読み込みテスト
+
+    except (OSError, IOError) as e:
+        logger.error(f"Failed to read photo file {file_path}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to read photo file")
+
+    # ファイル名の準備（安全性のため、元のファイル名を使用）
+    safe_filename = os.path.basename(picture.file_path) or filename
+
+    try:
+        # FileResponseを返す
+        return FileResponse(
+            path=str(file_path),
+            media_type=picture.mime_type,
+            filename=safe_filename,
+            headers={
+                "Content-Length": str(file_size),
+                "Cache-Control": "private, max-age=3600"  # 1時間キャッシュ
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to create file response for photo {file_path}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to serve photo file")
 
 
