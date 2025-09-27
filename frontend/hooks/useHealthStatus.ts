@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { healthService } from "../services/health";
-import { HealthResponse } from "../types/api";
-import { ApiError } from "../lib/api/client";
+import { healthService } from "@/services/health";
+import { HealthResponse } from "@/types/api";
+import { ApiError } from "@/lib/api/client";
 
 export const useHealthStatus = () => {
   const [healthStatus, setHealthStatus] = useState<HealthResponse | null>(null);

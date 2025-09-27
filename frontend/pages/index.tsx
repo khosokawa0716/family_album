@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { useHealthStatus } from "../hooks/useHealthStatus";
+import { useHealthStatus } from "@/hooks/useHealthStatus";
 
 export default function Home() {
   const { healthStatus, loading, error } = useHealthStatus();

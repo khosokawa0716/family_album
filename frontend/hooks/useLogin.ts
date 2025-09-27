@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { apiClient } from "../lib/api/client";
+import { apiClient } from "@/lib/api/client";
 
 interface LoginRequest {
   user_name: string;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLogin } from "../hooks/useLogin";
+import { useLogin } from "@/hooks/useLogin";
 
 export default function Login() {
   const [username, setUsername] = useState("");

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { useLogin } from "../hooks/useLogin";
+import { useLogin } from "@/hooks/useLogin";
 
 interface UserInfo {
   id: number;

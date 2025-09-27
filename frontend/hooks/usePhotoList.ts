@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { pictureService } from "../services/pictures";
-import { Picture } from "../types/pictures";
+import { pictureService } from "@/services/pictures";
+import { Picture } from "@/types/pictures";
 
 export const usePhotoList = () => {
   const [photos, setPhotos] = useState<Picture[]>([]);

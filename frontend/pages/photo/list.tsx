@@ -1,5 +1,5 @@
-import { usePhotoList } from "../../hooks/usePhotoList";
-import { formatDate } from "../../utils/date";
+import { usePhotoList } from "@/hooks/usePhotoList";
+import { formatDate } from "@/utils/date";
 
 export default function PhotoList() {
   const { photos, selectedCategory, selectedDate, setSelectedCategory, setSelectedDate } = usePhotoList();

@@ -1,5 +1,5 @@
-import { apiClient } from "../lib/api/client";
-import { PictureRequest, PictureResponse } from "../types/pictures";
+import { apiClient } from "@/lib/api/client";
+import { PictureRequest, PictureResponse } from "@/types/pictures";
 
 export const pictureService = {
   async getPictures(params: PictureRequest): Promise<PictureResponse> {
