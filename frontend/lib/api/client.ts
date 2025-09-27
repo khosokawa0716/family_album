@@ -24,7 +24,7 @@ class ApiClient {
       headers: {
         "Content-Type": "application/json",
         ...options.headers,
-        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       ...options,
     });

@@ -89,11 +89,13 @@ export default function TmpUserPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700">ステータス</label>
               <p className="mt-1 text-sm text-gray-900">
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  userInfo.status === 1
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
-                }`}>
+                <span
+                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    userInfo.status === 1
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
                   {userInfo.status === 1 ? "有効" : "無効"}
                 </span>
               </p>
