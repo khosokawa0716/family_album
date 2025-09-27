@@ -61,6 +61,7 @@ def get_pictures(
     if category:
         try:
             category_ids = [int(cid.strip()) for cid in category.split(',')]
+            print("Fetched categories:", category_ids)
             query = query.filter(Picture.category_id.in_(category_ids))
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid category format")

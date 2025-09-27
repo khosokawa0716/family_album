@@ -4,13 +4,15 @@ from schemas import LoginRequest, LoginResponse, UserResponse, LogoutResponse
 from auth import authenticate_user, create_access_token
 from config import ACCESS_TOKEN_EXPIRE_MINUTES
 from dependencies import get_current_user
+from database import get_db
+from sqlalchemy.orm import Session
 from models import User
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
 @router.post("/login", response_model=LoginResponse)
-def login(login_request: LoginRequest):
-    user = authenticate_user(login_request.user_name, login_request.password)
+def login(login_request: LoginRequest, db: Session = Depends(get_db)):
+    user = authenticate_user(login_request.user_name, login_request.password, db)
     if not user:
         raise HTTPException(
             status_code=401,

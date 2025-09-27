@@ -3,8 +3,14 @@ import { formatDate } from "@/utils/date";
 import PageHeader from "@/components/PageHeader";
 
 export default function PhotoList() {
-  const { photos, selectedCategory, selectedDate, setSelectedCategory, setSelectedDate } =
-    usePhotoList();
+  const {
+    photos,
+    categories,
+    selectedCategory,
+    selectedDate,
+    setSelectedCategory,
+    setSelectedDate,
+  } = usePhotoList();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -32,10 +38,12 @@ export default function PhotoList() {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="">Select Category</option>
-                <option value="family">Family</option>
-                <option value="travel">Travel</option>
-                <option value="event">Event</option>
+                <option value="すべて">すべて</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
             </div>
             {/* 日付のフィルターは一旦コメントアウト
@@ -65,8 +73,8 @@ export default function PhotoList() {
               onClick={() => console.log(`Photo ${photo.id} clicked`)}
             >
               <img
-                src={photo.thumbnail_path || ''}
-                alt={photo.title || 'Photo'}
+                src={photo.thumbnail_path || ""}
+                alt={photo.title || "Photo"}
                 className="w-full h-48 object-cover rounded-t-lg"
               />
               <div className="p-4">

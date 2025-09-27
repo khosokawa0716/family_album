@@ -42,8 +42,8 @@ export const useLogin = () => {
       sessionStorage.setItem("access_token", data.access_token);
       sessionStorage.setItem("user", JSON.stringify(data.user));
 
-      // ユーザー情報表示ページに遷移
-      router.push("/tmp");
+      // 写真一覧ページに遷移
+      router.push("/photo/list");
     } catch (err) {
       setError(err instanceof Error ? err.message : "ログインに失敗しました");
     } finally {

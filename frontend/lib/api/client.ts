@@ -31,7 +31,7 @@ class ApiClient {
 
     if (!response.ok) {
       if (response.status === 401) {
-        // トークンが無効または期限切れの場合、ログインページにリダイレクト
+        // 未認証、トークンが無効または期限切れの場合、ログインページにリダイレクト
         window.location.href = "/login";
         return Promise.reject(new ApiError("Unauthorized", 401, "Unauthorized"));
       }

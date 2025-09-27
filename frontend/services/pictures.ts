@@ -9,6 +9,7 @@ import {
 
 export const pictureService = {
   async getPictures(params: PictureRequest): Promise<PictureListResponse> {
+    console.log("Fetching pictures with params:", params);
     const queryParams: Record<string, string> = {};
 
     Object.entries(params).forEach(([key, value]) => {
@@ -16,7 +17,7 @@ export const pictureService = {
         queryParams[key] = String(value);
       }
     });
-
+    console.log("Query parameters:", queryParams);
     const query = new URLSearchParams(queryParams).toString();
     const endpoint = query ? `/pictures?${query}` : "/pictures";
     return apiClient.get<PictureListResponse>(endpoint);
