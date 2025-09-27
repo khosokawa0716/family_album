@@ -43,7 +43,7 @@ export const usePhotoUpload = () => {
       console.log("Category:", selectedCategory);
 
       // Simulate upload
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Redirect to photo list
       router.push("/photo/list");

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { pictureService } from "@/services/pictures";
-import { Picture } from "@/types/pictures";
+import { PictureResponse } from "@/types/pictures";
 
 export const usePhotoList = () => {
-  const [photos, setPhotos] = useState<Picture[]>([]);
+  const [photos, setPhotos] = useState<PictureResponse[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
 

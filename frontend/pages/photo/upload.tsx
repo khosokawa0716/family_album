@@ -31,13 +31,9 @@ export default function PhotoUpload() {
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                JPEG, PNG, GIF, WEBP (10MB max)
-              </p>
+              <p className="text-xs text-gray-500 mt-1">JPEG, PNG, GIF, WEBP (10MB max)</p>
               {selectedFile && (
-                <p className="text-sm text-green-600 mt-2">
-                  Selected file: {selectedFile.name}
-                </p>
+                <p className="text-sm text-green-600 mt-2">Selected file: {selectedFile.name}</p>
               )}
             </div>
 

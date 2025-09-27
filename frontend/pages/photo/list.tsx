@@ -3,7 +3,8 @@ import { formatDate } from "@/utils/date";
 import PageHeader from "@/components/PageHeader";
 
 export default function PhotoList() {
-  const { photos, selectedCategory, selectedDate, setSelectedCategory, setSelectedDate } = usePhotoList();
+  const { photos, selectedCategory, selectedDate, setSelectedCategory, setSelectedDate } =
+    usePhotoList();
 
   return (
     <div className="min-h-screen bg-gray-50">

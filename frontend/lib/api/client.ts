@@ -66,6 +66,67 @@ class ApiClient {
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: "DELETE" });
   }
+
+  async patch<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: "PATCH",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async postFormData<T>(endpoint: string, formData: FormData): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const token = sessionStorage.getItem("access_token");
+
+    const response = await globalThis.fetch(url, {
+      method: "POST",
+      headers: {
+        // Content-Typeは設定しない（ブラウザが自動設定）
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = "/login";
+        return Promise.reject(new ApiError("Unauthorized", 401, "Unauthorized"));
+      }
+      throw new ApiError(
+        `HTTP error! status: ${response.status}`,
+        response.status,
+        response.statusText,
+      );
+    }
+
+    return response.json();
+  }
+
+  async downloadBlob(endpoint: string): Promise<Blob> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const token = sessionStorage.getItem("access_token");
+
+    const response = await globalThis.fetch(url, {
+      method: "GET",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = "/login";
+        return Promise.reject(new ApiError("Unauthorized", 401, "Unauthorized"));
+      }
+      throw new ApiError(
+        `HTTP error! status: ${response.status}`,
+        response.status,
+        response.statusText,
+      );
+    }
+
+    return response.blob();
+  }
 }
 
 export const apiClient = new ApiClient();

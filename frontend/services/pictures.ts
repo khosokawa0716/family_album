@@ -1,10 +1,44 @@
 import { apiClient } from "@/lib/api/client";
-import { PictureRequest, PictureResponse } from "@/types/pictures";
+import {
+  PictureRequest,
+  PictureListResponse,
+  PictureResponse,
+  PictureCreateRequest,
+  PictureRestoreResponse,
+} from "@/types/pictures";
 
 export const pictureService = {
-  async getPictures(params: PictureRequest): Promise<PictureResponse> {
-    const query = new URLSearchParams(params as Record<string, string>).toString();
+  async getPictures(params: PictureRequest): Promise<PictureListResponse> {
+    const queryParams: Record<string, string> = {};
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams[key] = String(value);
+      }
+    });
+
+    const query = new URLSearchParams(queryParams).toString();
     const endpoint = query ? `/pictures?${query}` : "/pictures";
-    return apiClient.get<PictureResponse>(endpoint);
+    return apiClient.get<PictureListResponse>(endpoint);
+  },
+
+  async getPictureDetail(pictureId: number): Promise<PictureResponse> {
+    return apiClient.get<PictureResponse>(`/pictures/${pictureId}`);
+  },
+
+  async uploadPicture(formData: FormData): Promise<PictureResponse> {
+    return apiClient.postFormData<PictureResponse>("/pictures", formData);
+  },
+
+  async deletePicture(pictureId: number): Promise<void> {
+    return apiClient.delete<void>(`/pictures/${pictureId}`);
+  },
+
+  async restorePicture(pictureId: number): Promise<PictureRestoreResponse> {
+    return apiClient.patch<PictureRestoreResponse>(`/pictures/${pictureId}/restore`);
+  },
+
+  async downloadPicture(pictureId: number): Promise<Blob> {
+    return apiClient.downloadBlob(`/pictures/${pictureId}/download`);
   },
 };
