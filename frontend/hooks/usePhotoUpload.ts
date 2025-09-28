@@ -8,6 +8,8 @@ export const usePhotoUpload = () => {
   const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -59,6 +61,14 @@ export const usePhotoUpload = () => {
       formData.append("file", selectedFile);
       formData.append("category_id", selectedCategory);
 
+      if (title.trim()) {
+        formData.append("title", title.trim());
+      }
+
+      if (description.trim()) {
+        formData.append("description", description.trim());
+      }
+
       await pictureService.uploadPicture(formData);
 
       // Redirect to photo list
@@ -74,9 +84,13 @@ export const usePhotoUpload = () => {
   return {
     selectedFile,
     selectedCategory,
+    title,
+    description,
     categories,
     isUploading,
     setSelectedCategory,
+    setTitle,
+    setDescription,
     handleFileChange,
     handleSubmit,
   };

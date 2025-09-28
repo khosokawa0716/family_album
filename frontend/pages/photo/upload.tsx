@@ -6,9 +6,13 @@ export default function PhotoUpload() {
   const {
     selectedFile,
     selectedCategory,
+    title,
+    description,
     categories,
     isUploading,
     setSelectedCategory,
+    setTitle,
+    setDescription,
     handleFileChange,
     handleSubmit,
   } = usePhotoUpload();
@@ -38,6 +42,36 @@ export default function PhotoUpload() {
                 {selectedFile && (
                   <p className="text-sm text-green-600 mt-2">Selected file: {selectedFile.name}</p>
                 )}
+              </div>
+
+              {/* Title */}
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter photo title"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Enter photo description"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
               </div>
 
               {/* Category */}
