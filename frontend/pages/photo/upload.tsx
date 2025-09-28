@@ -6,6 +6,7 @@ export default function PhotoUpload() {
   const {
     selectedFile,
     selectedCategory,
+    categories,
     isUploading,
     setSelectedCategory,
     handleFileChange,
@@ -52,9 +53,11 @@ export default function PhotoUpload() {
                   required
                 >
                   <option value="">Select Category</option>
-                  <option value="family">Family</option>
-                  <option value="travel">Travel</option>
-                  <option value="event">Event</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

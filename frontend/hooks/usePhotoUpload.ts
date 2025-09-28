@@ -1,12 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { pictureService } from "@/services/pictures";
+import { categoryService } from "@/services/categories";
+import { CategoryResponse } from "@/types/categories";
 
 export const usePhotoUpload = () => {
   const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await categoryService.getCategories();
+        setCategories(response);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -58,6 +74,7 @@ export const usePhotoUpload = () => {
   return {
     selectedFile,
     selectedCategory,
+    categories,
     isUploading,
     setSelectedCategory,
     handleFileChange,
