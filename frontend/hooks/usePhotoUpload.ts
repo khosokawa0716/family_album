@@ -56,7 +56,7 @@ export const usePhotoUpload = () => {
 
     try {
       const formData = new FormData();
-      formData.append("picture", selectedFile);
+      formData.append("file", selectedFile);
       formData.append("category_id", selectedCategory);
 
       await pictureService.uploadPicture(formData);
