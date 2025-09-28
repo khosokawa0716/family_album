@@ -13,15 +13,39 @@ export default [
         project: "./tsconfig.json",
         sourceType: "module",
         ecmaVersion: "latest",
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+      globals: {
+        React: "readonly",
+        console: "readonly",
+        window: "readonly",
+        document: "readonly",
+        sessionStorage: "readonly",
+        localStorage: "readonly",
+        alert: "readonly",
+        globalThis: "readonly",
       },
     },
     rules: {
-      // 必要に応じてルール追加
       "no-unused-vars": "warn",
     },
   },
   {
     files: ["**/*.{js,jsx}"],
+    languageOptions: {
+      globals: {
+        React: "readonly",
+        console: "readonly",
+        window: "readonly",
+        document: "readonly",
+        sessionStorage: "readonly",
+        localStorage: "readonly",
+        alert: "readonly",
+        globalThis: "readonly",
+      },
+    },
     rules: {
       "no-unused-vars": "warn",
     },
