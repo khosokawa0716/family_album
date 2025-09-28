@@ -271,13 +271,24 @@ async def upload_picture(
     """
 
     # 1. ファイル基本検証
-    if not file.content_type:
+    # HEIC/HEIFファイルはブラウザでContent-Typeが正しく設定されない場合があるため
+    # ファイル拡張子もチェックして補完する
+    content_type = file.content_type or ""
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    # HEIC/HEIFファイルの場合、Content-Typeを補正
+    if file_extension in ['.heic', '.heif'] and not content_type:
+        content_type = 'image/heic' if file_extension == '.heic' else 'image/heif'
+    elif file_extension in ['.heic', '.heif'] and content_type in ['application/octet-stream', '']:
+        content_type = 'image/heic' if file_extension == '.heic' else 'image/heif'
+
+    if not content_type:
         raise HTTPException(status_code=400, detail="File content type is required")
 
-    if not storage_config.is_allowed_image_type(file.content_type):
+    if not storage_config.is_allowed_image_type(content_type):
         raise HTTPException(
             status_code=400,
-            detail=f"File type {file.content_type} is not allowed. "
+            detail=f"File type {content_type} is not allowed. "
                    f"Allowed types: {', '.join(storage_config.allowed_image_types)}"
         )
 
@@ -317,9 +328,9 @@ async def upload_picture(
         # 画像サイズ取得
         width, height = image.size
 
-        # HEIC画像の場合はPNG形式に変換
+        # HEIC/HEIF画像の場合はPNG形式に変換
         pil_format = image.format
-        if pil_format == "HEIC":
+        if pil_format in ["HEIC", "HEIF"]:
             image = image.convert("RGB")
             pil_format = "PNG"
             detected_mime = "image/png"

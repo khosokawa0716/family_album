@@ -35,9 +35,13 @@ export const usePhotoUpload = () => {
         return;
       }
 
-      // Allowed file types
+      // Allowed file types - HEICファイルのtype判定を緩和
       const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"];
-      if (!allowedTypes.includes(file.type)) {
+      const fileExtension = file.name.toLowerCase().split('.').pop();
+      const isHEIC = fileExtension === 'heic' || fileExtension === 'heif';
+
+      // HEICファイルの場合はfile.typeが空でも許可
+      if (!isHEIC && !allowedTypes.includes(file.type)) {
         alert("Allowed file types: JPEG, PNG, GIF, WEBP, HEIC, HEIF");
         return;
       }
