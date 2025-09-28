@@ -53,7 +53,7 @@ def test_login_success(client, monkeypatch):
     mock_user.create_date = "2023-01-01T00:00:00"
     mock_user.update_date = "2023-01-01T00:00:00"
 
-    monkeypatch.setattr("auth.get_user_by_username", lambda username: mock_user)
+    monkeypatch.setattr("auth.get_user_by_username", lambda username, db: mock_user)
 
     login_data = {
         "user_name": "test_user",
@@ -70,7 +70,7 @@ def test_login_success(client, monkeypatch):
     assert response_data["user"]["id"] == 1
 
 def test_login_invalid_username(client, monkeypatch):
-    monkeypatch.setattr("auth.get_user_by_username", lambda username: None)
+    monkeypatch.setattr("auth.get_user_by_username", lambda username, db: None)
 
     login_data = {
         "user_name": "invalid_user",
@@ -89,7 +89,7 @@ def test_login_invalid_password(client, monkeypatch):
     mock_user = MagicMock()
     mock_user.user_name = "test_user"
     mock_user.password = "hashed_password"
-    monkeypatch.setattr("auth.get_user_by_username", lambda username: mock_user)
+    monkeypatch.setattr("auth.get_user_by_username", lambda username, db: mock_user)
 
     login_data = {
         "user_name": "test_user",
@@ -109,7 +109,7 @@ def test_login_disabled_user(client, monkeypatch):
     mock_user.user_name = "disabled_user"
     mock_user.password = "hashed_password"
     mock_user.status = 0
-    monkeypatch.setattr("auth.get_user_by_username", lambda username: mock_user)
+    monkeypatch.setattr("auth.get_user_by_username", lambda username, db: mock_user)
 
     login_data = {
         "user_name": "disabled_user",

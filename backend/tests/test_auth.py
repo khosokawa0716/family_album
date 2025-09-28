@@ -57,12 +57,14 @@ def test_get_current_user_success(monkeypatch):
     mock_user.user_name = "test_user"
     mock_user.email = "test@example.com"
     mock_user.status = 1
-    monkeypatch.setattr("dependencies.get_user_by_username", lambda username: mock_user)
+    monkeypatch.setattr("dependencies.get_user_by_username", lambda username, db: mock_user)
 
     # 認証情報のモック
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="valid_token")
 
-    result = get_current_user(credentials)
+    # Mock database session
+    mock_db = MagicMock()
+    result = get_current_user(credentials, mock_db)
 
     assert result == mock_user
     assert result.user_name == "test_user"
@@ -96,9 +98,11 @@ def test_get_current_user_expired_token(monkeypatch):
     # ユーザー検索をモック
     mock_user = MagicMock()
     mock_user.user_name = "test_user"
-    monkeypatch.setattr("dependencies.get_user_by_username", lambda username: mock_user)
+    monkeypatch.setattr("dependencies.get_user_by_username", lambda username, db: mock_user)
 
-    result = get_current_user(credentials)
+    # Mock database session
+    mock_db = MagicMock()
+    result = get_current_user(credentials, mock_db)
     assert result == mock_user  # 実際の実装では期限チェックは jwt.decode で行われる
 
 
@@ -122,7 +126,7 @@ def test_get_current_user_user_not_found(monkeypatch):
     # 有効なトークンだが存在しないユーザー
     mock_payload = {"sub": "nonexistent_user", "exp": 9999999999}
     monkeypatch.setattr("dependencies.jwt.decode", lambda *args, **kwargs: mock_payload)
-    monkeypatch.setattr("dependencies.get_user_by_username", lambda username: None)
+    monkeypatch.setattr("dependencies.get_user_by_username", lambda username, db: None)
 
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="valid_token_invalid_user")
 
@@ -208,12 +212,14 @@ def test_authenticate_user_success(monkeypatch):
     # ユーザー取得のモック
     mock_user = MagicMock()
     mock_user.password = "hashed_password"
-    monkeypatch.setattr("auth.get_user_by_username", lambda username: mock_user)
+    monkeypatch.setattr("auth.get_user_by_username", lambda username, db: mock_user)
 
     # パスワード検証のモック
     monkeypatch.setattr("auth.verify_password", lambda plain, hashed: True)
 
-    result = authenticate_user("test_user", "test_password")
+    # Mock database session
+    mock_db = MagicMock()
+    result = authenticate_user("test_user", "test_password", mock_db)
 
     assert result == mock_user
 
@@ -223,9 +229,11 @@ def test_authenticate_user_not_found(monkeypatch):
     from auth import authenticate_user
 
     # ユーザーが見つからない場合のモック
-    monkeypatch.setattr("auth.get_user_by_username", lambda username: None)
+    monkeypatch.setattr("auth.get_user_by_username", lambda username, db: None)
 
-    result = authenticate_user("nonexistent_user", "test_password")
+    # Mock database session
+    mock_db = MagicMock()
+    result = authenticate_user("nonexistent_user", "test_password", mock_db)
 
     assert result is False
 
@@ -237,11 +245,13 @@ def test_authenticate_user_wrong_password(monkeypatch):
     # ユーザー取得のモック
     mock_user = MagicMock()
     mock_user.password = "hashed_password"
-    monkeypatch.setattr("auth.get_user_by_username", lambda username: mock_user)
+    monkeypatch.setattr("auth.get_user_by_username", lambda username, db: mock_user)
 
     # パスワード検証失敗のモック
     monkeypatch.setattr("auth.verify_password", lambda plain, hashed: False)
 
-    result = authenticate_user("test_user", "wrong_password")
+    # Mock database session
+    mock_db = MagicMock()
+    result = authenticate_user("test_user", "wrong_password", mock_db)
 
     assert result is False
