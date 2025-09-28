@@ -29,16 +29,16 @@ export const usePhotoUpload = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Check file size (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        alert("File size exceeds 10MB");
+      // Check file size (20MB)
+      if (file.size > 20 * 1024 * 1024) {
+        alert("File size exceeds 20MB");
         return;
       }
 
       // Allowed file types
-      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"];
       if (!allowedTypes.includes(file.type)) {
-        alert("Allowed file types: JPEG, PNG, GIF, WEBP");
+        alert("Allowed file types: JPEG, PNG, GIF, WEBP, HEIC, HEIF");
         return;
       }
 

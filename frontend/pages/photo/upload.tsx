@@ -33,12 +33,12 @@ export default function PhotoUpload() {
                 <input
                   type="file"
                   id="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
                   onChange={handleFileChange}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">JPEG, PNG, GIF, WEBP (10MB max)</p>
+                <p className="text-xs text-gray-500 mt-1">JPEG, PNG, GIF, WEBP, HEIC, HEIF (20MB max)</p>
                 {selectedFile && (
                   <p className="text-sm text-green-600 mt-2">Selected file: {selectedFile.name}</p>
                 )}

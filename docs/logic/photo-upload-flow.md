@@ -10,12 +10,12 @@
 - バックエンドAPI（`POST /api/pictures`）にリクエスト送信
 
 ## 2. バリデーション
-- ファイル形式（JPEG/PNG/HEIC）・サイズ（20MB以下）をサーバー側で検証
+- ファイル形式（JPEG/PNG/GIF/WEBP/HEIC/HEIF）・サイズ（20MB以下）をサーバー側で検証
 - カテゴリIDの存在チェック
 - 不正な場合はエラー応答
 
 ## 3. 画像変換・保存
-- HEIC/HEIFの場合はJPEGまたはWEBPに自動変換
+- HEIC/HEIFの場合はPNGに自動変換
 - EXIFの位置情報を削除、向きを自動補正
 - サムネイル（長辺1280px/320px）を生成
 - 外付けSSD（`/mnt/photos`）に原本・サムネイルを保存
