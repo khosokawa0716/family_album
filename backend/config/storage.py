@@ -31,7 +31,7 @@ class StorageConfig:
 
     def _parse_allowed_types(self) -> List[str]:
         """許可する画像タイプの解析"""
-        types_str = os.getenv("ALLOWED_IMAGE_TYPES", "image/jpeg,image/png,image/gif,image/webp")
+        types_str = os.getenv("ALLOWED_IMAGE_TYPES", "image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif")
         return [t.strip() for t in types_str.split(",")]
 
     def _ensure_directories_exist(self):

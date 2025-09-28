@@ -5,6 +5,7 @@ from sqlalchemy import and_, extract, desc
 from typing import Optional, Union
 from datetime import datetime
 from PIL import Image, ExifTags
+from pillow_heif import register_heif_opener
 import uuid
 import os
 from pathlib import Path
@@ -20,6 +21,9 @@ from utils.url_signature import verify_url_signature, get_signature_info, create
 
 router = APIRouter(prefix="/api", tags=["pictures"])
 logger = logging.getLogger(__name__)
+
+# HEIC画像サポートを有効化
+register_heif_opener()
 
 @router.get("/pictures", response_model=PictureListResponse)
 def get_pictures(
@@ -313,18 +317,24 @@ async def upload_picture(
         # 画像サイズ取得
         width, height = image.size
 
-        # MIME型の再確認（PIL の format から）
+        # HEIC画像の場合はPNG形式に変換
         pil_format = image.format
-        if pil_format:
-            format_to_mime = {
-                'JPEG': 'image/jpeg',
-                'PNG': 'image/png',
-                'GIF': 'image/gif',
-                'WEBP': 'image/webp'
-            }
-            detected_mime = format_to_mime.get(pil_format, file.content_type)
+        if pil_format == "HEIC":
+            image = image.convert("RGB")
+            pil_format = "PNG"
+            detected_mime = "image/png"
         else:
-            detected_mime = file.content_type
+            # MIME型の再確認（PIL の format から）
+            if pil_format:
+                format_to_mime = {
+                    'JPEG': 'image/jpeg',
+                    'PNG': 'image/png',
+                    'GIF': 'image/gif',
+                    'WEBP': 'image/webp'
+                }
+                detected_mime = format_to_mime.get(pil_format, file.content_type)
+            else:
+                detected_mime = file.content_type
 
         # EXIF から撮影日時を抽出
         taken_date = None
@@ -349,7 +359,11 @@ async def upload_picture(
 
     # 4. ユニークファイル名生成
     file_extension = Path(file.filename).suffix.lower()
-    if not file_extension:
+
+    # HEIC画像の場合は強制的にPNG拡張子を使用
+    if pil_format == "PNG" and (file_extension == '.heic' or file_extension == '.heif' or detected_mime == 'image/png'):
+        file_extension = '.png'
+    elif not file_extension:
         # MIME型から拡張子を推定
         mime_to_ext = {
             'image/jpeg': '.jpg',

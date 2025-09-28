@@ -214,7 +214,7 @@ class TestPicturesUploadAPI:
         mock_config.is_allowed_image_type.return_value = True
         mock_config.is_valid_file_size.return_value = True
         mock_config.max_upload_size = 20971520  # 20MB
-        mock_config.allowed_image_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+        mock_config.allowed_image_types = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"]
         return mock_config
 
     # ========== 認証・認可系テスト ==========
@@ -560,6 +560,53 @@ class TestPicturesUploadAPI:
             response = client.post("/api/pictures", files=files, headers=headers)
 
             assert response.status_code == 400
+
+        finally:
+            self.teardown_dependency_overrides()
+
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('os.path.exists', return_value=False)
+    @patch('uuid.uuid4')
+    def test_upload_picture_heic_format(self, mock_uuid, mock_exists, mock_file_open):
+        """HEIC画像の正常アップロード（PNG変換）"""
+        mock_uuid.return_value.hex = "test123456"
+
+        try:
+            mock_user = self.create_mock_user()
+            mock_db = self.setup_mock_db_for_upload()
+            mock_storage = self.create_mock_storage_config()
+
+            self.setup_dependency_overrides(mock_db, mock_user, mock_storage)
+
+            # HEICファイルとして送信（実際にはテスト用画像）
+            test_image = self.create_test_image(format="JPEG")  # PILではHEIC作成できないためJPEGで代用
+            files = {"file": ("test.heic", test_image, "image/heic")}
+
+            token = self.create_test_token(1, 1)
+            headers = {"Authorization": f"Bearer {token}"}
+
+            with patch('PIL.Image.open') as mock_pil:
+                mock_img = MagicMock()
+                mock_img.size = (800, 600)
+                mock_img.format = "HEIC"  # HEICフォーマットとして認識
+                mock_img.convert.return_value = mock_img  # convert("RGB")の戻り値
+                mock_img.mode = "RGB"
+                mock_img.copy.return_value = mock_img
+                mock_img.thumbnail = MagicMock()
+                mock_pil.return_value = mock_img
+
+                response = client.post("/api/pictures", files=files, headers=headers)
+
+            assert response.status_code == 201
+            data = response.json()
+            # HEIC画像はPNGに変換されてMIME型も変更される
+            assert data["mime_type"] == "image/png"
+            # ファイル拡張子もPNGに変更される
+            assert data["file_path"].endswith(".png")
+            assert data["thumbnail_path"].startswith("thumbnails/thumb_")
+            assert data["thumbnail_path"].endswith(".png")
+            # convert("RGB")が呼ばれることを確認
+            mock_img.convert.assert_called_once_with("RGB")
 
         finally:
             self.teardown_dependency_overrides()
