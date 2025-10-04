@@ -42,6 +42,11 @@ class ApiClient {
       );
     }
 
+    // 204 No Content の場合は空のレスポンスを返す
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
     return response.json();
   }
 

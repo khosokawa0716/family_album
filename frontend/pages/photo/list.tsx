@@ -65,7 +65,7 @@ export default function PhotoList() {
               <div
                 key={photo.id}
                 className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => console.log(`Photo ${photo.id} clicked`)}
+                onClick={() => window.location.href = `/photo/detail/${photo.id}`}
               >
                 <img
                   src={photo.thumbnail_path || ""}
