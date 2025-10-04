@@ -103,7 +103,9 @@ export default function PhotoDetail() {
             {/* タイトルと説明 */}
             {(photo.title || photo.description) && (
               <div className="mb-4">
-                {photo.title && <h2 className="text-xl font-bold text-gray-900 mb-2">{photo.title}</h2>}
+                {photo.title && (
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">{photo.title}</h2>
+                )}
                 {photo.description && <p className="text-gray-600">{photo.description}</p>}
               </div>
             )}
@@ -188,7 +190,9 @@ export default function PhotoDetail() {
                           )}
                         </div>
                         <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
-                        <p className="text-xs text-gray-400 mt-2">{formatDate(comment.create_date)}</p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          {formatDate(comment.create_date)}
+                        </p>
                       </div>
                     )}
                   </div>

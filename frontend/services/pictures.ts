@@ -3,7 +3,6 @@ import {
   PictureRequest,
   PictureListResponse,
   PictureResponse,
-  PictureCreateRequest,
   PictureRestoreResponse,
 } from "@/types/pictures";
 

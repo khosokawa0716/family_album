@@ -52,7 +52,7 @@ export const usePhotoDetail = (pictureId: number) => {
 
   // 写真削除
   const handleDeletePhoto = async () => {
-    if (!confirm("この写真を削除してもよろしいですか？")) {
+    if (!window.confirm("この写真を削除してもよろしいですか？")) {
       return;
     }
 
@@ -133,7 +133,7 @@ export const usePhotoDetail = (pictureId: number) => {
 
   // コメント削除
   const handleDeleteComment = async (commentId: number) => {
-    if (!confirm("このコメントを削除してもよろしいですか？")) {
+    if (!window.confirm("このコメントを削除してもよろしいですか？")) {
       return;
     }
 
