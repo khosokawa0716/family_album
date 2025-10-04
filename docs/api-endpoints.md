@@ -29,8 +29,8 @@
 ## カテゴリ
 - `GET /api/categories` … カテゴリ一覧
 - `POST /api/categories` … カテゴリ追加（管理者のみ）
-- `PATCH /api/categories/:id` … カテゴリ編集
-- `DELETE /api/categories/:id` … カテゴリ削除
+- `PATCH /api/categories/:id` … カテゴリ編集（管理者のみ）
+- `DELETE /api/categories/:id` … カテゴリ削除（管理者のみ）
 
 ## 操作ログ
 - `GET /api/logs` … 操作ログ一覧（管理者のみ）

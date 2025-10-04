@@ -13,7 +13,7 @@ CREATE TABLE pictures (
     height INT UNSIGNED,
     taken_date DATETIME COMMENT '撮影日時（EXIFから自動抽出または手動入力）',
     category_id INT UNSIGNED COMMENT 'NULL許可、未分類カテゴリに自動振り分け',
-    status TINYINT NOT NULL DEFAULT 1 COMMENT '1: 有効, 0: 削除済み（ごみ箱）',
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '1: 有効, 0: 削除済み (論理削除)',
     create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME NULL COMMENT '論理削除日時',
