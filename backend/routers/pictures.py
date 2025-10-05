@@ -168,6 +168,98 @@ def get_pictures(
     )
 
 
+@router.get("/pictures/deleted", response_model=PictureListResponse)
+def get_deleted_pictures(
+    limit: int = Query(20, ge=1, le=100, description="取得件数（最大100件）"),
+    offset: int = Query(0, ge=0, description="開始位置"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    削除済み写真一覧取得API（管理者専用）
+
+    削除済み写真（status=0）の一覧を取得する。
+    管理者（type=10）のみアクセス可能。
+    自家族の削除済み写真のみ取得し、削除日時の降順でソートする。
+
+    Args:
+        limit: 取得件数（デフォルト20、最大100）
+        offset: 開始位置
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+
+    Returns:
+        PictureListResponse: 削除済み写真一覧
+
+    Raises:
+        HTTPException:
+            - 403: 管理者以外のアクセス
+    """
+
+    # 管理者権限チェック
+    if current_user.type != 10:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    # 基本クエリ: 自分の家族の削除済み写真のみ
+    query = db.query(Picture).filter(
+        and_(
+            Picture.family_id == current_user.family_id,
+            Picture.status == 0
+        )
+    )
+
+    # 総件数取得
+    total = query.count()
+
+    # ソート（削除日時降順）
+    query = query.order_by(desc(Picture.deleted_at))
+
+    # ページネーション適用
+    pictures = query.offset(offset).limit(limit).all()
+
+    # 署名付きURLを生成するため、レスポンス用のデータを作成
+    picture_responses = []
+    for picture in pictures:
+        # ファイル名を取得して署名付きURLを生成
+        filename = os.path.basename(picture.file_path)
+
+        # 署名付きURL生成（30分有効）
+        thumbnail_url = create_signed_url(f"thumb_{filename}", "thumbnails", expires_in=1800)
+        photo_url = create_signed_url(filename, "photos", expires_in=1800)
+
+        # PictureResponseオブジェクトを作成（署名付きURLを設定）
+        picture_data = {
+            "id": picture.id,
+            "family_id": picture.family_id,
+            "uploaded_by": picture.uploaded_by,
+            "title": picture.title,
+            "description": picture.description,
+            "file_path": photo_url,  # 署名付きオリジナル画像URL
+            "thumbnail_path": thumbnail_url,  # 署名付きサムネイルURL
+            "file_size": picture.file_size,
+            "mime_type": picture.mime_type,
+            "width": picture.width,
+            "height": picture.height,
+            "taken_date": picture.taken_date,
+            "category_id": picture.category_id,
+            "status": picture.status,
+            "create_date": picture.create_date,
+            "update_date": picture.update_date
+        }
+        picture_responses.append(picture_data)
+
+    # 次ページ存在判定
+    has_more = (offset + limit) < total
+
+    return PictureListResponse(
+        pictures=picture_responses,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=has_more
+    )
+
+
 @router.get("/pictures/{picture_id}", response_model=PictureResponse)
 def get_picture_detail(
     picture_id: int,
