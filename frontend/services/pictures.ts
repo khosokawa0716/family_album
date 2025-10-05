@@ -26,6 +26,10 @@ export const pictureService = {
     return apiClient.get<PictureResponse>(`/pictures/${pictureId}`);
   },
 
+  async getDeletedPictures(): Promise<PictureListResponse> {
+    return apiClient.get<PictureListResponse>("/pictures/deleted");
+  },
+
   async uploadPicture(formData: FormData): Promise<PictureResponse> {
     return apiClient.postFormData<PictureResponse>("/pictures", formData);
   },

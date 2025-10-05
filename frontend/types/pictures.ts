@@ -26,6 +26,7 @@ export interface PictureResponse {
   status: number;
   create_date: string; // ISO 8601 date string
   update_date: string; // ISO 8601 date string
+  deleted_at: string | null; // ISO 8601 date string
 }
 
 export interface PictureListResponse {
