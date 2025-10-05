@@ -29,6 +29,9 @@ class OperationLog(Base):
     detail = Column(Text)
     create_date = Column(DateTime, nullable=False, server_default=func.now())
 
+    # Relationships
+    user = relationship("User", backref="operation_logs")
+
 
 class Category(Base):
     __tablename__ = 'categories'

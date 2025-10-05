@@ -21,9 +21,27 @@ def get_logs(
         )
 
     try:
-        # 操作ログを取得（作成日時の降順）
-        logs = db.query(OperationLog).order_by(OperationLog.create_date.desc()).all()
-        return logs
+        # 操作ログを取得（自家族のログのみ、作成日時の降順）
+        logs = db.query(OperationLog, User.user_name).join(
+            User, OperationLog.user_id == User.id
+        ).filter(
+            User.family_id == current_user.family_id
+        ).order_by(OperationLog.create_date.desc()).all()
+
+        # レスポンスを構築
+        return [
+            OperationLogResponse(
+                id=log.id,
+                user_id=log.user_id,
+                user_name=user_name,
+                operation=log.operation,
+                target_type=log.target_type,
+                target_id=log.target_id,
+                detail=log.detail,
+                create_date=log.create_date
+            )
+            for log, user_name in logs
+        ]
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

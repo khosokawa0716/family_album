@@ -266,6 +266,7 @@ class CommentResponse(BaseModel):
 class OperationLogResponse(BaseModel):
     id: int
     user_id: int
+    user_name: str
     operation: str
     target_type: str
     target_id: Optional[int]

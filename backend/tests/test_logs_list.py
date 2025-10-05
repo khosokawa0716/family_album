@@ -3,7 +3,8 @@ GET /api/logs APIのテストファイル（操作ログ一覧取得）
 
 操作ログ一覧取得API仕様:
 - 管理者のみがアクセス可能（type=10）
-- 全ての操作ログを作成日時の降順で取得
+- 自家族の操作ログのみを作成日時の降順で取得
+- レスポンスにユーザー名を含める
 - 一般ユーザー（type=0）はアクセス不可（403）
 
 テスト観点:
@@ -16,19 +17,23 @@ GET /api/logs APIのテストファイル（操作ログ一覧取得）
 2. 基本動作テスト
    - ログが0件の場合の正常レスポンス
    - ログが存在する場合の正常レスポンス
-   - レスポンス構造の検証
+   - レスポンス構造の検証（user_nameを含む）
    - デフォルトソート（作成日降順）
 
-3. レスポンス形式テスト
+3. 家族スコープテスト
+   - 自家族のログのみ取得
+   - 他家族のログは取得しない
+
+4. レスポンス形式テスト
    - 配列形式のレスポンス
    - ログオブジェクトの必須フィールド
    - データ型の検証
 
-4. エラーハンドリングテスト
+5. エラーハンドリングテスト
    - 不正な形式のAuthorizationヘッダー
    - DBエラーシミュレート
 
-テスト項目（13項目）:
+テスト項目（15項目）:
 
 【認証・認可系】(5項目)
 - test_get_logs_without_auth: 未認証でのアクセス拒否（403）
@@ -40,8 +45,12 @@ GET /api/logs APIのテストファイル（操作ログ一覧取得）
 【基本動作】(4項目)
 - test_get_logs_empty_list: ログ0件時の正常レスポンス
 - test_get_logs_success: ログ存在時の正常レスポンス
-- test_get_logs_response_format: レスポンス形式の検証
+- test_get_logs_response_format: レスポンス形式の検証（user_nameを含む）
 - test_get_logs_sort_order: デフォルトソート（作成日降順）確認
+
+【家族スコープ】(2項目)
+- test_get_logs_family_scope: 自家族のログのみ取得
+- test_get_logs_exclude_other_family: 他家族のログは取得しない
 
 【エラーハンドリング】(2項目)
 - test_get_logs_user_not_found: 存在しないユーザーのトークン（401）
@@ -176,7 +185,11 @@ def test_get_logs_empty_list():
     # データベースモック（空のログリスト）
     mock_db_session = MagicMock()
     mock_query = MagicMock()
-    mock_query.order_by.return_value.all.return_value = []
+    mock_join = MagicMock()
+    mock_filter = MagicMock()
+    mock_filter.order_by.return_value.all.return_value = []
+    mock_join.filter.return_value = mock_filter
+    mock_query.join.return_value = mock_join
 
     mock_db_session.query.return_value = mock_query
 
@@ -224,10 +237,17 @@ def test_get_logs_success():
     mock_log2.detail = "カテゴリを編集しました"
     mock_log2.create_date = datetime(2024, 1, 1, 10, 0, 0)
 
-    # データベースモック（作成日降順でソート済み）
+    # データベースモック（作成日降順でソート済み、JOINでuser_nameも返す）
     mock_db_session = MagicMock()
     mock_query = MagicMock()
-    mock_query.order_by.return_value.all.return_value = [mock_log1, mock_log2]
+    mock_join = MagicMock()
+    mock_filter = MagicMock()
+    mock_filter.order_by.return_value.all.return_value = [
+        (mock_log1, "admin_user"),
+        (mock_log2, "other_user")
+    ]
+    mock_join.filter.return_value = mock_filter
+    mock_query.join.return_value = mock_join
 
     mock_db_session.query.return_value = mock_query
 
@@ -241,8 +261,10 @@ def test_get_logs_success():
         assert len(response_data) == 2
         assert response_data[0]["id"] == 1
         assert response_data[0]["operation"] == "CREATE"
+        assert response_data[0]["user_name"] == "admin_user"
         assert response_data[1]["id"] == 2
         assert response_data[1]["operation"] == "UPDATE"
+        assert response_data[1]["user_name"] == "other_user"
     finally:
         app.dependency_overrides.clear()
 
@@ -272,7 +294,11 @@ def test_get_logs_response_format():
     # データベースモック
     mock_db_session = MagicMock()
     mock_query = MagicMock()
-    mock_query.order_by.return_value.all.return_value = [mock_log]
+    mock_join = MagicMock()
+    mock_filter = MagicMock()
+    mock_filter.order_by.return_value.all.return_value = [(mock_log, "admin_user")]
+    mock_join.filter.return_value = mock_filter
+    mock_query.join.return_value = mock_join
 
     mock_db_session.query.return_value = mock_query
 
@@ -289,13 +315,14 @@ def test_get_logs_response_format():
         assert len(response_data) == 1
 
         log = response_data[0]
-        required_fields = ["id", "user_id", "operation", "target_type", "target_id", "detail", "create_date"]
+        required_fields = ["id", "user_id", "user_name", "operation", "target_type", "target_id", "detail", "create_date"]
         for field in required_fields:
             assert field in log, f"Required field '{field}' missing from response"
 
         # データ型の確認
         assert isinstance(log["id"], int)
         assert isinstance(log["user_id"], int)
+        assert isinstance(log["user_name"], str)
         assert isinstance(log["operation"], str)
         assert isinstance(log["target_type"], str)
         assert isinstance(log["create_date"], str)
@@ -337,7 +364,14 @@ def test_get_logs_sort_order():
     # データベースモック（作成日降順でソート済み）
     mock_db_session = MagicMock()
     mock_query = MagicMock()
-    mock_query.order_by.return_value.all.return_value = [mock_log_new, mock_log_old]
+    mock_join = MagicMock()
+    mock_filter = MagicMock()
+    mock_filter.order_by.return_value.all.return_value = [
+        (mock_log_new, "admin_user"),
+        (mock_log_old, "admin_user")
+    ]
+    mock_join.filter.return_value = mock_filter
+    mock_query.join.return_value = mock_join
 
     mock_db_session.query.return_value = mock_query
 
@@ -395,7 +429,11 @@ def test_get_logs_db_error():
     # データベースエラーのモック
     mock_db_session = MagicMock()
     mock_query = MagicMock()
-    mock_query.order_by.return_value.all.side_effect = Exception("Database connection error")
+    mock_join = MagicMock()
+    mock_filter = MagicMock()
+    mock_filter.order_by.return_value.all.side_effect = Exception("Database connection error")
+    mock_join.filter.return_value = mock_filter
+    mock_query.join.return_value = mock_join
 
     mock_db_session.query.return_value = mock_query
 
@@ -429,7 +467,11 @@ def test_get_logs_admin_access():
     # データベースモック
     mock_db_session = MagicMock()
     mock_query = MagicMock()
-    mock_query.order_by.return_value.all.return_value = []
+    mock_join = MagicMock()
+    mock_filter = MagicMock()
+    mock_filter.order_by.return_value.all.return_value = []
+    mock_join.filter.return_value = mock_filter
+    mock_query.join.return_value = mock_join
 
     mock_db_session.query.return_value = mock_query
 
@@ -448,3 +490,115 @@ def test_get_logs_admin_only():
     """管理者のみアクセス可能確認"""
     # test_get_logs_general_user()と同じロジック
     test_get_logs_general_user()
+
+
+# ========================
+# 家族スコープテスト (2項目)
+# ========================
+
+def test_get_logs_family_scope():
+    """自家族のログのみ取得"""
+    client = TestClient(app)
+
+    # 管理者ユーザーのモック（family_id=1）
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.family_id = 1
+    mock_user.user_name = "admin_user"
+    mock_user.type = 10
+    mock_user.status = 1
+
+    # 自家族のログのモック
+    mock_log1 = MagicMock()
+    mock_log1.id = 1
+    mock_log1.user_id = 1
+    mock_log1.operation = "CREATE"
+    mock_log1.target_type = "picture"
+    mock_log1.target_id = 1
+    mock_log1.detail = "自家族のログ1"
+    mock_log1.create_date = datetime(2024, 1, 2, 10, 0, 0)
+
+    mock_log2 = MagicMock()
+    mock_log2.id = 2
+    mock_log2.user_id = 2
+    mock_log2.operation = "UPDATE"
+    mock_log2.target_type = "category"
+    mock_log2.target_id = 1
+    mock_log2.detail = "自家族のログ2"
+    mock_log2.create_date = datetime(2024, 1, 1, 10, 0, 0)
+
+    # データベースモック（自家族のログのみ）
+    mock_db_session = MagicMock()
+    mock_query = MagicMock()
+    mock_join = MagicMock()
+    mock_filter = MagicMock()
+    mock_filter.order_by.return_value.all.return_value = [
+        (mock_log1, "admin_user"),
+        (mock_log2, "family_member")
+    ]
+    mock_join.filter.return_value = mock_filter
+    mock_query.join.return_value = mock_join
+
+    mock_db_session.query.return_value = mock_query
+
+    app.dependency_overrides[get_current_user] = lambda: mock_user
+    app.dependency_overrides[get_db] = lambda: mock_db_session
+
+    try:
+        response = client.get("/api/logs")
+        assert response.status_code == 200
+        response_data = response.json()
+        assert len(response_data) == 2
+        assert response_data[0]["detail"] == "自家族のログ1"
+        assert response_data[1]["detail"] == "自家族のログ2"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_get_logs_exclude_other_family():
+    """他家族のログは取得しない"""
+    client = TestClient(app)
+
+    # 管理者ユーザーのモック（family_id=1）
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.family_id = 1
+    mock_user.user_name = "admin_user"
+    mock_user.type = 10
+    mock_user.status = 1
+
+    # 自家族のログのみを返すモック（他家族のログは除外）
+    mock_log_own_family = MagicMock()
+    mock_log_own_family.id = 1
+    mock_log_own_family.user_id = 1
+    mock_log_own_family.operation = "CREATE"
+    mock_log_own_family.target_type = "picture"
+    mock_log_own_family.target_id = 1
+    mock_log_own_family.detail = "自家族のログ"
+    mock_log_own_family.create_date = datetime(2024, 1, 1, 10, 0, 0)
+
+    # データベースモック（filter で他家族のログを除外）
+    mock_db_session = MagicMock()
+    mock_query = MagicMock()
+    mock_join = MagicMock()
+    mock_filter = MagicMock()
+    mock_filter.order_by.return_value.all.return_value = [
+        (mock_log_own_family, "admin_user")
+    ]
+    mock_join.filter.return_value = mock_filter
+    mock_query.join.return_value = mock_join
+
+    mock_db_session.query.return_value = mock_query
+
+    app.dependency_overrides[get_current_user] = lambda: mock_user
+    app.dependency_overrides[get_db] = lambda: mock_db_session
+
+    try:
+        response = client.get("/api/logs")
+        assert response.status_code == 200
+        response_data = response.json()
+        # 自家族のログのみが返される
+        assert len(response_data) == 1
+        assert response_data[0]["detail"] == "自家族のログ"
+    finally:
+        app.dependency_overrides.clear()
