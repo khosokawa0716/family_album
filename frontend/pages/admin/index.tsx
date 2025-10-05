@@ -5,35 +5,35 @@ import { AdminGuard } from "@/components/AdminGuard";
 export default function AdminMenu() {
   const adminMenuItems = [
     {
-      title: "æü¶ü¡",
-      description: "æü¶ünı ûèÆûJd)P¡",
+      title: "ãƒ¦ãƒ¼ã‚¶ãƒ¼ç®¡ç†",
+      description: "ãƒ¦ãƒ¼ã‚¶ãƒ¼ã®è¿½åŠ ãƒ»ç·¨é›†ãƒ»å‰Šé™¤",
       href: "/admin/user",
-      icon: "=e",
+      icon: "ğŸ‘¤",
     },
     {
-      title: "«Æ´ê¡",
-      description: "«Æ´ênı ûèÆûJdh:	ô",
+      title: "ã‚«ãƒ†ã‚´ãƒªç®¡ç†",
+      description: "ã‚«ãƒ†ã‚´ãƒªã®è¿½åŠ ãƒ»ç·¨é›†ãƒ»å‰Šé™¤ãƒ»ä¸¦ã³æ›¿ãˆ",
       href: "/admin/category",
-      icon: "=Á",
+      icon: "ğŸ“",
     },
     {
-      title: "™©C¡",
-      description: "JdUŒ_™n©C",
+      title: "å‰Šé™¤æ¸ˆã¿å†™çœŸ",
+      description: "å‰Šé™¤æ¸ˆã¿å†™çœŸã®ç¢ºèªãƒ»å¾©å…ƒ",
       href: "/admin/restore",
-      icon: "=",
+      icon: "ğŸ—‘",
     },
     {
-      title: "Í\í°",
-      description: "·¹ÆànÍ\et’º",
+      title: "æ“ä½œãƒ­ã‚°",
+      description: "ãƒ¦ãƒ¼ã‚¶ãƒ¼ã®æ“ä½œå±¥æ­´ã‚’ç¢ºèª",
       href: "/admin/log",
-      icon: "=Ë",
+      icon: "ğŸ“‹",
     },
   ];
 
   return (
     <AdminGuard>
       <div className="min-h-screen bg-gray-50">
-        <PageHeader title="¡(áËåü" />
+        <PageHeader title="ç®¡ç†ãƒ¡ãƒ‹ãƒ¥ãƒ¼" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
