@@ -42,9 +42,9 @@ def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_cu
     if current_user.type != 10:
         raise HTTPException(status_code=403, detail="Insufficient permissions. Admin access required.")
 
-    # 全ユーザーを取得（無効化されたユーザーも含む）
+    # 自家族のユーザーを取得（無効化されたユーザーも含む）
     try:
-        users = db.query(User).all()
+        users = db.query(User).filter(User.family_id == current_user.family_id).all()
         return users
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve users: {str(e)}")

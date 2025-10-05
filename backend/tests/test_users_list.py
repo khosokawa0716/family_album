@@ -47,6 +47,7 @@ GET /api/users APIのテストファイル（ユーザー一覧取得・管理�
 - test_get_users_response_format: レスポンス形式の検証
 - test_get_users_no_password_in_response: パスワード情報の非表示確認
 - test_get_users_includes_disabled_users: 無効化ユーザーも含まれることの確認
+- test_get_users_family_scope: 家族スコープのフィルタリング確認
 """
 
 from unittest.mock import MagicMock
@@ -230,6 +231,7 @@ def test_get_users_response_format(client):
     mock_admin_user.id = 1
     mock_admin_user.user_name = "admin_user"
     mock_admin_user.type = 10
+    mock_admin_user.family_id = 1
     mock_admin_user.status = 1
 
     # ユーザーリストのモック
@@ -262,7 +264,9 @@ def test_get_users_response_format(client):
     # データベースセッションのモック
     mock_db = MagicMock()
     mock_query = MagicMock()
-    mock_query.all.return_value = mock_users
+    mock_filter_result = MagicMock()
+    mock_filter_result.all.return_value = mock_users
+    mock_query.filter.return_value = mock_filter_result
     mock_db.query.return_value = mock_query
 
     # FastAPIアプリの依存性注入をオーバーライド
@@ -356,6 +360,7 @@ def test_get_users_includes_disabled_users(client):
     mock_admin_user.id = 1
     mock_admin_user.user_name = "admin_user"
     mock_admin_user.type = 10
+    mock_admin_user.family_id = 1
     mock_admin_user.status = 1
 
     # ユーザーリストのモック（有効・無効ユーザー含む）
@@ -388,7 +393,9 @@ def test_get_users_includes_disabled_users(client):
     # データベースセッションのモック
     mock_db = MagicMock()
     mock_query = MagicMock()
-    mock_query.all.return_value = mock_users
+    mock_filter_result = MagicMock()
+    mock_filter_result.all.return_value = mock_users
+    mock_query.filter.return_value = mock_filter_result
     mock_db.query.return_value = mock_query
 
     # FastAPIアプリの依存性注入をオーバーライド
@@ -412,3 +419,66 @@ def test_get_users_includes_disabled_users(client):
     statuses = [user["status"] for user in response_data]
     assert 1 in statuses  # 有効ユーザー
     assert 0 in statuses  # 無効ユーザー
+
+
+def test_get_users_family_scope(client):
+    """家族スコープのフィルタリング確認テスト"""
+    # 管理者ユーザーのモック（family_id=1）
+    mock_admin_user = MagicMock()
+    mock_admin_user.id = 1
+    mock_admin_user.user_name = "admin_user"
+    mock_admin_user.email = "admin@example.com"
+    mock_admin_user.type = 10
+    mock_admin_user.family_id = 1
+    mock_admin_user.status = 1
+    mock_admin_user.create_date = "2023-01-01T00:00:00"
+    mock_admin_user.update_date = "2023-01-01T00:00:00"
+
+    # 同じ家族のユーザー（family_id=1）
+    mock_same_family_user = MagicMock()
+    mock_same_family_user.id = 2
+    mock_same_family_user.user_name = "same_family_user"
+    mock_same_family_user.email = "same@example.com"
+    mock_same_family_user.type = 0
+    mock_same_family_user.family_id = 1
+    mock_same_family_user.status = 1
+    mock_same_family_user.create_date = "2023-01-01T00:00:00"
+    mock_same_family_user.update_date = "2023-01-01T00:00:00"
+
+    # 同じ家族のユーザーのみが返される
+    mock_users = [mock_admin_user, mock_same_family_user]
+
+    # dependencies.get_current_user 関数をモック
+    def mock_get_current_user():
+        return mock_admin_user
+
+    # データベースセッションのモック
+    mock_db = MagicMock()
+    mock_query = MagicMock()
+    mock_filter_result = MagicMock()
+    mock_filter_result.all.return_value = mock_users
+    mock_query.filter.return_value = mock_filter_result
+    mock_db.query.return_value = mock_query
+
+    # FastAPIアプリの依存性注入をオーバーライド
+    from main import app
+    from dependencies import get_current_user
+    from routers.users import get_db
+    app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[get_db] = lambda: mock_db
+
+    headers = {"Authorization": "Bearer admin_token"}
+    response = client.get("/api/users", headers=headers)
+
+    # テスト後にオーバーライドをクリア
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    response_data = response.json()
+
+    # 返されたユーザー全員が同じfamily_idを持つことを確認
+    for user in response_data:
+        assert user["family_id"] == 1
+
+    # 異なる家族のユーザーが含まれていないことを確認
+    assert all(user["family_id"] == mock_admin_user.family_id for user in response_data)
