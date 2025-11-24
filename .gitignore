@@ -52,3 +52,11 @@ Thumbs.db
 # File Storage
 backend/storage/
 /mnt/photos/
+
+# Backup files
+*.bak
+*.bak[0-9]
+*.bak_*
+
+# Docker override
+docker-compose.override.yml
