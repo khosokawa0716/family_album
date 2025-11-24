@@ -17,7 +17,13 @@ DB_PORT = os.getenv("DB_PORT", "3306")
 DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # SQLAlchemyエンジンの作成
-engine = create_engine(DATABASE_URL)
+# engine = create_engine(DATABASE_URL)
+
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,      # 送信前に接続の生存確認
+    pool_recycle=1800        # 30分でコネクションを再作成（MySQLのwait_timeout未満に）
+)
 
 # セッションの作成
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
