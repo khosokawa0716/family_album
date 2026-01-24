@@ -104,6 +104,56 @@ curl http://localhost:3000/
 
 ---
 
+## ⚠️ 重要: ストレージ設定について
+
+### データ永続化の仕組み
+
+写真とサムネイルをUSBドライブに永続化するには、**環境変数とボリュームマウントの整合性**が必須です。
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 正しい設定                                                       │
+├─────────────────────────────────────────────────────────────────┤
+│ 環境変数:  PHOTOS_STORAGE_PATH=/app/storage/photos              │
+│ ボリューム: /media/usbdrive/.../photos:/app/storage/photos      │
+│                        ↓                                        │
+│ コンテナ内 /app/storage/photos → ホスト /media/usbdrive/.../photos │
+│ ✅ データはUSBドライブに永続化される                              │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ ❌ 間違った設定（過去の問題）                                     │
+├─────────────────────────────────────────────────────────────────┤
+│ 環境変数:  PHOTOS_STORAGE_PATH=/media/usbdrive/.../photos       │
+│ ボリューム: /media/usbdrive/...:/app/storage/images             │
+│                        ↓                                        │
+│ コンテナ内に /media/usbdrive/.../photos が自動作成される          │
+│ ⚠️ このパスはマウントされていないため、データは永続化されない！     │
+│ コンテナ再作成時にデータ消失                                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 設定確認コマンド
+
+```bash
+# 1. 環境変数とボリュームの整合性を確認
+./scripts/check-storage.sh
+
+# 2. 手動確認
+docker compose exec api python -c "
+from config.storage import storage_config
+print('Photos:', storage_config.photos_path)
+print('Thumbnails:', storage_config.thumbnails_path)
+"
+
+# 3. マウントが機能しているかテスト
+docker compose exec api sh -c 'echo test > /app/storage/photos/test.txt'
+ls /media/usbdrive/family_album/photos/test.txt  # ホストで確認
+rm /media/usbdrive/family_album/photos/test.txt  # テストファイル削除
+```
+
+---
+
 ## 🔧 トラブルシューティング
 
 ### よくある問題と解決方法
@@ -161,6 +211,27 @@ from database import get_db
 next(get_db())
 print('DB接続OK')
 "
+```
+
+#### 6. 画像が表示されない / サムネイルが404
+```bash
+# ストレージ設定の確認
+./scripts/check-storage.sh
+
+# DBのファイルパスと実際のファイルを照合
+docker compose exec api python -c "
+from database import SessionLocal
+from models import Picture
+from pathlib import Path
+db = SessionLocal()
+for pic in db.query(Picture).limit(3).all():
+    path = Path('/app/storage') / pic.file_path
+    print(f'{pic.file_path} -> exists: {path.exists()}')
+db.close()
+"
+
+# ファイルが存在しない場合は、ボリュームマウント設定を確認
+# 「重要: ストレージ設定について」セクションを参照
 ```
 
 ---

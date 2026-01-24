@@ -8,16 +8,24 @@ services:
       - DB_USER=family_album_user
       - DB_PASSWORD=root
       - DB_NAME=family_album
-      - MEDIA_ROOT=/app/storage/images
+      # ストレージパス設定（重要）
+      # これらはコンテナ内のパスを指定する必要がある
+      # ホストパス（/media/usbdrive/...）を指定するとデータが永続化されない
+      - PHOTOS_STORAGE_PATH=/app/storage/photos
+      - THUMBNAILS_STORAGE_PATH=/app/storage/thumbnails
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # ボリュームマウント設定（重要）
+    # 写真データをUSBドライブに永続化するため、必ず以下の形式でマウントする
+    # ホストパス:コンテナパス の対応を環境変数と一致させること
     volumes:
-      - /media/usbdrive/family_album:/app/storage/images
+      - /media/usbdrive/family_album/photos:/app/storage/photos      # 写真の永続化
+      - /media/usbdrive/family_album/thumbnails:/app/storage/thumbnails  # サムネイルの永続化
     expose:
       - "8000"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/health || exit 1"]
       interval: 5s
       timeout: 3s
       start_period: 20s
