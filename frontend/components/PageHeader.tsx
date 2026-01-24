@@ -44,10 +44,6 @@ export default function PageHeader({ title, children }: PageHeaderProps) {
                 <span className="hidden sm:inline text-sm text-gray-600">
                   {user.user_name}
                 </span>
-                <User
-                  className="h-5 w-5 text-gray-500 sm:hidden"
-                  aria-hidden="true"
-                />
                 <button
                   onClick={logout}
                   className="bg-gray-600 hover:bg-gray-700 text-white px-2 sm:px-3 py-2 rounded-md text-sm font-medium inline-flex items-center"
