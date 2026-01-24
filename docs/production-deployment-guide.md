@@ -1,0 +1,276 @@
+# 本番環境デプロイガイド
+
+## 概要
+
+このドキュメントは、Raspberry Pi本番環境でのFamily Album アプリケーションのデプロイ方法を説明しています。
+
+## システム構成
+
+```
+nginx (port 80) 
+├── Frontend (Next.js) - port 3000
+└── Backend (FastAPI) - port 8000
+```
+
+- **nginx**: リバースプロキシ（外部からのアクセスを各サービスに振り分け）
+- **frontend**: Next.js アプリケーション
+- **backend**: FastAPI アプリケーション
+- **database**: MySQL（ホストマシン上で稼働）
+
+---
+
+## 🚀 デプロイ手順
+
+### 1. 基本のデプロイコマンド
+
+**全サービスの初回起動/全体更新:**
+```bash
+cd /srv/family_album/api
+docker compose up --build -d
+```
+
+### 2. 個別サービスのデプロイ
+
+#### 🎨 フロントエンドのみ更新
+```bash
+cd /srv/family_album/api
+docker compose up --build -d frontend
+```
+
+**実行内容:**
+- Dockerfile に基づいてイメージをリビルド
+- `npm install` → `npm run build` → コンテナ再起動
+- 約1-2分で完了
+
+#### ⚙️ バックエンドのみ更新
+```bash
+cd /srv/family_album/api
+docker compose up --build -d api
+```
+
+**実行内容:**
+- Python依存関係の再インストール
+- アプリケーションコードの更新
+- FastAPIサーバーの再起動
+
+#### 🌐 Nginxのみ更新
+```bash
+cd /srv/family_album/api
+docker compose up --build -d nginx
+```
+
+**実行内容:**
+- nginx設定ファイルの再読み込み
+- プロキシ設定の反映
+
+---
+
+## 📊 サービス状態の確認
+
+### コンテナ状態確認
+```bash
+# 全コンテナの状態
+docker compose ps
+
+# 特定サービスの状態
+docker compose ps frontend
+docker compose ps api
+docker compose ps nginx
+```
+
+### ログ確認
+```bash
+# 全サービスのログ
+docker compose logs
+
+# 特定サービスのログ
+docker compose logs frontend
+docker compose logs api
+docker compose logs nginx
+
+# リアルタイムログ監視
+docker compose logs -f frontend
+```
+
+### ヘルスチェック確認
+```bash
+# Docker Composeのヘルスチェック状況
+docker compose ps
+
+# 直接ヘルスチェックエンドポイント確認
+curl http://localhost:80/api/health
+curl http://localhost:3000/
+```
+
+---
+
+## 🔧 トラブルシューティング
+
+### よくある問題と解決方法
+
+#### 1. コンテナが起動しない
+```bash
+# コンテナを停止して再起動
+docker compose down
+docker compose up -d
+
+# 強制的にイメージを再ビルド
+docker compose build --no-cache
+docker compose up -d
+```
+
+#### 2. ポート競合エラー
+```bash
+# ポート使用状況確認
+sudo netstat -tlnp | grep :80
+sudo netstat -tlnp | grep :3000
+sudo netstat -tlnp | grep :8000
+
+# 競合プロセス強制終了
+sudo kill -9 <PID>
+```
+
+#### 3. 古いイメージが残っている
+```bash
+# 未使用イメージ削除
+docker image prune
+
+# 全ての停止コンテナとイメージ削除（注意）
+docker system prune -a
+```
+
+#### 4. フロントエンドビルドエラー
+```bash
+# Node.jsキャッシュクリア後再ビルド
+docker compose exec frontend npm cache clean --force
+docker compose up --build -d frontend
+
+# または手動でコンテナ内確認
+docker compose exec frontend bash
+cd /app && npm run build
+```
+
+#### 5. バックエンドAPI接続エラー
+```bash
+# APIコンテナ内でヘルスチェック
+docker compose exec api curl http://localhost:8000/api/health
+
+# データベース接続確認
+docker compose exec api python -c "
+from database import get_db
+next(get_db())
+print('DB接続OK')
+"
+```
+
+---
+
+## 🔄 定期メンテナンス
+
+### 1. ログローテーション
+```bash
+# nginxログクリア
+sudo truncate -s 0 /srv/family_album/api/nginx/logs/*.log
+
+# Dockerログクリア
+docker compose down
+sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log'
+docker compose up -d
+```
+
+### 2. ディスク容量確認
+```bash
+# ディスク使用量確認
+df -h
+
+# Docker関連のディスク使用量
+docker system df
+```
+
+### 3. イメージ更新
+```bash
+# ベースイメージの更新確認
+docker compose pull
+docker compose up --build -d
+```
+
+---
+
+## 📝 デプロイチェックリスト
+
+### フロントエンドデプロイ後
+- [ ] ブラウザで http://[RaspberryPI IP]/ にアクセス可能
+- [ ] 写真一覧ページの無限スクロール動作確認
+- [ ] カテゴリフィルター動作確認
+- [ ] 写真アップロード機能確認
+
+### バックエンドデプロイ後
+- [ ] API エンドポイント http://[RaspberryPI IP]/api/health 応答確認
+- [ ] データベース接続確認
+- [ ] 写真データ取得API動作確認
+- [ ] 認証機能動作確認
+
+### 全体デプロイ後
+- [ ] 全サービスが `healthy` 状態
+- [ ] ログにエラーメッセージがない
+- [ ] ファイルアップロード/ダウンロード確認
+- [ ] 複数ユーザーでの動作確認
+
+---
+
+## 🚨 緊急時対応
+
+### サービス全停止
+```bash
+cd /srv/family_album/api
+docker compose down
+```
+
+### 前回動作していた状態に戻す
+```bash
+# 最新のコミットを確認
+git log --oneline -5
+
+# 特定のコミットに戻す
+git checkout <commit-hash>
+docker compose up --build -d
+
+# 元に戻す
+git checkout main
+```
+
+### バックアップからの復旧
+```bash
+# データベースバックアップがある場合
+mysql -u family_album_user -p family_album < backup.sql
+
+# 画像データバックアップがある場合
+sudo rsync -av /backup/family_album/ /media/usbdrive/family_album/
+```
+
+---
+
+## 🔗 関連ファイル
+
+- **設定**: `docker-compose.yml`
+- **nginx設定**: `nginx/nginx.conf`
+- **フロントエンド設定**: `frontend/.env.production`
+- **バックエンド設定**: `backend/config.py`
+- **API仕様**: `docs/api-endpoints.md`
+
+---
+
+## 📞 サポート情報
+
+**ログ収集方法:**
+```bash
+# 全体ログ収集
+docker compose logs > deployment-logs.txt
+
+# 詳細な環境情報
+docker compose ps > container-status.txt
+docker version >> container-status.txt
+docker compose version >> container-status.txt
+```
+
+これらの情報を添付してサポートに連絡してください。
