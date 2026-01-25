@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { Calendar } from "lucide-react";
 import { usePhotoDetail } from "@/hooks/usePhotoDetail";
 import { formatDate } from "@/utils/date";
 import PageHeader from "@/components/PageHeader";
@@ -79,12 +80,12 @@ export default function PhotoDetail() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-50">
-        <PageHeader title="家族のアルバム">
+        <PageHeader title="Detail">
           <button
             onClick={() => router.push("/photo/list")}
             className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
           >
-            一覧に戻る
+            Back
           </button>
         </PageHeader>
 
@@ -110,10 +111,11 @@ export default function PhotoDetail() {
               </div>
             )}
 
-            {/* 撮影日 */}
-            {photo.taken_date && (
-              <p className="text-sm text-gray-500 mb-4">撮影日: {formatDate(photo.taken_date)}</p>
-            )}
+            {/* 投稿日 */}
+            <p className="text-sm text-gray-500 mb-4 inline-flex items-center">
+              <Calendar className="h-4 w-4 mr-1" aria-hidden="true" />
+              {formatDate(photo.create_date)}
+            </p>
 
             {/* 操作ボタン */}
             <div className="flex gap-3">

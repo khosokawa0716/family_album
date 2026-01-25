@@ -151,12 +151,10 @@ export default function PhotoList() {
                   <p className="text-sm text-gray-500 mt-1">
                     {photo.description || "説明がありません"}
                   </p>
-                  {/* 撮影日の表示 */}
-                  {photo.taken_date && (
-                    <span className="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full mt-2">
-                      {formatDate(photo.taken_date)}
-                    </span>
-                  )}
+                  {/* 投稿日の表示 */}
+                  <span className="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full mt-2">
+                    {formatDate(photo.create_date)}
+                  </span>
                 </div>
               </div>
             ))}

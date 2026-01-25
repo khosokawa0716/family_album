@@ -514,14 +514,20 @@ async def upload_picture(
 
         # オリジナル画像保存（EXIF除去）
         with open(photo_path, 'wb') as f:
-            image.save(f, format=pil_format, quality=95 if pil_format == 'JPEG' else None)
+            if pil_format == 'JPEG':
+                image.save(f, format=pil_format, quality=95)
+            else:
+                image.save(f, format=pil_format)
 
         # サムネイル生成・保存
         thumbnail = image.copy()
         thumbnail.thumbnail((300, 300), Image.Resampling.LANCZOS)
 
         with open(thumb_path, 'wb') as f:
-            thumbnail.save(f, format=pil_format, quality=85 if pil_format == 'JPEG' else None)
+            if pil_format == 'JPEG':
+                thumbnail.save(f, format=pil_format, quality=85)
+            else:
+                thumbnail.save(f, format=pil_format)
 
         logger.info(f"Files saved: {photo_path}, {thumb_path}")
 
