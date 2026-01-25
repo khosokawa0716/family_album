@@ -14,7 +14,7 @@ from io import BytesIO
 
 from database import get_db
 from models import Picture, User, Category
-from schemas import PictureListResponse, PictureResponse
+from schemas import PictureListResponse, PictureResponse, PictureUpdateRequest
 from dependencies import get_current_user
 from config.storage import get_storage_config, StorageConfig
 from utils.url_signature import verify_url_signature, get_signature_info, create_signed_url
@@ -585,6 +585,72 @@ async def upload_picture(
                     logger.error(f"Failed to cleanup file {path}: {cleanup_error}")
 
         raise HTTPException(status_code=500, detail="Failed to save picture information")
+
+
+@router.patch("/pictures/{picture_id}", response_model=PictureResponse)
+def update_picture(
+    picture_id: int,
+    request: PictureUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    写真情報更新API
+
+    指定されたIDの写真のタイトル・説明を更新する。
+    投稿者本人または管理者のみ編集可能。
+
+    Args:
+        picture_id: 更新する写真のID
+        request: 更新内容（title, description）
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+
+    Returns:
+        PictureResponse: 更新された写真情報
+
+    Raises:
+        HTTPException:
+            - 404: 写真が見つからない
+            - 403: 編集権限がない
+            - 500: データベース更新エラー
+    """
+
+    # 家族スコープでの写真取得（削除済みは除外）
+    picture = db.query(Picture).filter(
+        and_(
+            Picture.id == picture_id,
+            Picture.family_id == current_user.family_id,
+            Picture.status == 1
+        )
+    ).first()
+
+    if not picture:
+        raise HTTPException(status_code=404, detail="Picture not found")
+
+    # 権限チェック: 投稿者本人または管理者のみ編集可能
+    if picture.uploaded_by != current_user.id and current_user.type != 10:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # 更新処理
+    try:
+        if request.title is not None:
+            picture.title = request.title.strip() if request.title.strip() else None
+        if request.description is not None:
+            picture.description = request.description.strip() if request.description.strip() else None
+
+        picture.update_date = datetime.utcnow()
+
+        db.commit()
+        db.refresh(picture)
+
+        logger.info(f"Picture updated: ID={picture_id}, User={current_user.id}")
+        return picture
+
+    except Exception as e:
+        logger.error(f"Failed to update picture {picture_id}: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update picture")
 
 
 @router.delete("/pictures/{picture_id}", status_code=204)

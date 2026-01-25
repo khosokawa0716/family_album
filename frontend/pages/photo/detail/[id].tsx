@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { Calendar } from "lucide-react";
 import { usePhotoDetail } from "@/hooks/usePhotoDetail";
+import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/utils/date";
 import PageHeader from "@/components/PageHeader";
 import PhotoModal from "@/components/PhotoModal";
@@ -28,24 +29,19 @@ export default function PhotoDetail() {
     cancelEditComment,
     handleUpdateComment,
     handleDeleteComment,
+    // 写真編集
+    isEditingPhoto,
+    editingTitle,
+    setEditingTitle,
+    editingDescription,
+    setEditingDescription,
+    startEditPhoto,
+    cancelEditPhoto,
+    handleUpdatePhoto,
   } = usePhotoDetail(pictureId);
 
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // 現在のユーザーIDを取得（localStorageから）
-  const getCurrentUserId = (): number | null => {
-    if (typeof window === "undefined") return null;
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return null;
-    try {
-      const user = JSON.parse(userStr);
-      return user.id || null;
-    } catch {
-      return null;
-    }
-  };
-
-  const currentUserId = getCurrentUserId();
 
   if (!id || isNaN(pictureId)) {
     return (
@@ -102,12 +98,52 @@ export default function PhotoDetail() {
             </div>
 
             {/* タイトルと説明 */}
-            {(photo.title || photo.description) && (
+            {isEditingPhoto ? (
+              <div className="mb-4 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
+                  <input
+                    type="text"
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="タイトルを入力"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">説明</label>
+                  <textarea
+                    value={editingDescription}
+                    onChange={(e) => setEditingDescription(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="説明を入力"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleUpdatePhoto}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                  >
+                    保存
+                  </button>
+                  <button
+                    onClick={cancelEditPhoto}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            ) : (
               <div className="mb-4">
                 {photo.title && (
                   <h2 className="text-xl font-bold text-gray-900 mb-2">{photo.title}</h2>
                 )}
                 {photo.description && <p className="text-gray-600">{photo.description}</p>}
+                {!photo.title && !photo.description && (
+                  <p className="text-gray-400 italic">タイトル・説明なし</p>
+                )}
               </div>
             )}
 
@@ -125,6 +161,14 @@ export default function PhotoDetail() {
               >
                 ダウンロード
               </button>
+              {user?.id === photo.uploaded_by && !isEditingPhoto && (
+                <button
+                  onClick={startEditPhoto}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  編集
+                </button>
+              )}
               <button
                 onClick={handleDeletePhoto}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -174,7 +218,7 @@ export default function PhotoDetail() {
                       <div>
                         <div className="flex items-start justify-between mb-2">
                           <p className="font-medium text-gray-900">{comment.user_name}</p>
-                          {currentUserId === comment.user_id && (
+                          {user?.id === comment.user_id && (
                             <div className="flex gap-2">
                               <button
                                 onClick={() => startEditComment(comment)}

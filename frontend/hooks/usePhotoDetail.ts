@@ -16,6 +16,11 @@ export const usePhotoDetail = (pictureId: number) => {
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingContent, setEditingContent] = useState("");
 
+  // 写真編集用の状態
+  const [isEditingPhoto, setIsEditingPhoto] = useState(false);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [editingDescription, setEditingDescription] = useState("");
+
   // 写真詳細取得
   const fetchPhotoDetail = useCallback(async () => {
     try {
@@ -146,6 +151,37 @@ export const usePhotoDetail = (pictureId: number) => {
     }
   };
 
+  // 写真編集開始
+  const startEditPhoto = () => {
+    if (photo) {
+      setEditingTitle(photo.title || "");
+      setEditingDescription(photo.description || "");
+      setIsEditingPhoto(true);
+    }
+  };
+
+  // 写真編集キャンセル
+  const cancelEditPhoto = () => {
+    setIsEditingPhoto(false);
+    setEditingTitle("");
+    setEditingDescription("");
+  };
+
+  // 写真編集保存
+  const handleUpdatePhoto = async () => {
+    try {
+      await pictureService.updatePicture(pictureId, {
+        title: editingTitle || null,
+        description: editingDescription || null,
+      });
+      setIsEditingPhoto(false);
+      await fetchPhotoDetail();
+    } catch (err) {
+      console.error("Error updating photo:", err);
+      alert("写真情報の更新に失敗しました");
+    }
+  };
+
   return {
     photo,
     comments,
@@ -163,5 +199,14 @@ export const usePhotoDetail = (pictureId: number) => {
     cancelEditComment,
     handleUpdateComment,
     handleDeleteComment,
+    // 写真編集
+    isEditingPhoto,
+    editingTitle,
+    setEditingTitle,
+    editingDescription,
+    setEditingDescription,
+    startEditPhoto,
+    cancelEditPhoto,
+    handleUpdatePhoto,
   };
 };

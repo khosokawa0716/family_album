@@ -4,6 +4,7 @@ import {
   PictureListResponse,
   PictureResponse,
   PictureRestoreResponse,
+  PictureUpdateRequest,
 } from "@/types/pictures";
 
 export const pictureService = {
@@ -44,5 +45,9 @@ export const pictureService = {
 
   async downloadPicture(pictureId: number): Promise<Blob> {
     return apiClient.downloadBlob(`/pictures/${pictureId}/download`);
+  },
+
+  async updatePicture(pictureId: number, data: PictureUpdateRequest): Promise<PictureResponse> {
+    return apiClient.patch<PictureResponse>(`/pictures/${pictureId}`, data);
   },
 };

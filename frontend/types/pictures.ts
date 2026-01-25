@@ -46,3 +46,8 @@ export interface PictureCreateRequest {
 export interface PictureRestoreResponse {
   message: string;
 }
+
+export interface PictureUpdateRequest {
+  title?: string | null;
+  description?: string | null;
+}

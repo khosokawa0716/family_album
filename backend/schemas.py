@@ -202,6 +202,18 @@ class PictureCreateRequest(BaseModel):
         return v
 
 
+class PictureUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v):
+        if v is not None and len(v) > 255:
+            raise ValueError('Title must be 255 characters or less')
+        return v.strip() if v else v
+
+
 class PictureListResponse(BaseModel):
     pictures: list[PictureResponse]
     total: int
