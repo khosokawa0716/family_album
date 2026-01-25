@@ -29,9 +29,10 @@ export const usePhotoUpload = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Check file size (20MB)
-      if (file.size > 20 * 1024 * 1024) {
-        alert("File size exceeds 20MB");
+      // サーバー側で自動リサイズされるためサイズ制限は緩和
+      // ただし極端に大きいファイル（50MB超）は除外
+      if (file.size > 50 * 1024 * 1024) {
+        alert("ファイルサイズが大きすぎます（50MB以下にしてください）");
         return;
       }
 

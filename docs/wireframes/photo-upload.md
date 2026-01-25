@@ -10,7 +10,9 @@
 └───────────────────────────────┘
 ```
 
-- JPEG/PNG/GIF/WEBP/HEIC/HEIF対応、20MBまで
+- JPEG/PNG/GIF/WEBP/HEIC/HEIF対応
   - HEIC/HEIFは自動的にPNG形式に変換して保存
+  - 大きい画像は長辺2048px以下に自動リサイズ
+  - iPhone等の回転問題も自動補正
 - カテゴリはプルダウン選択
 - 投稿後は一覧画面へ遷移

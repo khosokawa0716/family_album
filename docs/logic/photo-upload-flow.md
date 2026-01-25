@@ -10,15 +10,17 @@
 - バックエンドAPI（`POST /api/pictures`）にリクエスト送信
 
 ## 2. バリデーション
-- ファイル形式（JPEG/PNG/GIF/WEBP/HEIC/HEIF）・サイズ（20MB以下）をサーバー側で検証
+- ファイル形式（JPEG/PNG/GIF/WEBP/HEIC/HEIF）をサーバー側で検証
 - カテゴリIDの存在チェック
 - 不正な場合はエラー応答
 
 ## 3. 画像変換・保存
 - HEIC/HEIFの場合はPNGに自動変換
-- EXIFの位置情報を削除、向きを自動補正
-- サムネイル（長辺1280px/320px）を生成
-- 外付けSSD（`/mnt/photos`）に原本・サムネイルを保存
+- EXIF Orientationに基づく自動回転補正（iPhoneなどの回転問題を解決）
+- 大きい画像は長辺2048px以下に自動リサイズ
+- EXIFの位置情報を削除
+- サムネイル（長辺300px）を生成
+- 外付けSSD（`/mnt/photos`）に画像・サムネイルを保存
 
 ## 4. DB登録
 - Picturesテーブルに新規レコードを作成

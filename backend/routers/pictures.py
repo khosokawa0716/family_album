@@ -417,6 +417,9 @@ async def upload_picture(
         # PIL で画像を開いて検証
         image = Image.open(BytesIO(file_content))
 
+        # 元のフォーマットを保存（exif_transpose後はNoneになるため）
+        original_format = image.format
+
         # EXIF Orientationに基づいて画像を正しい向きに回転
         # iPhoneなどで撮影した写真の回転問題を解決
         image = ImageOps.exif_transpose(image)
@@ -432,7 +435,7 @@ async def upload_picture(
             logger.info(f"Image resized to {width}x{height}")
 
         # HEIC/HEIF画像の場合はPNG形式に変換
-        pil_format = image.format
+        pil_format = original_format
         if pil_format in ["HEIC", "HEIF"]:
             image = image.convert("RGB")
             pil_format = "PNG"

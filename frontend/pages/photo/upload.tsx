@@ -39,7 +39,7 @@ export default function PhotoUpload() {
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  JPEG, PNG, GIF, WEBP, HEIC, HEIF (20MB max)
+                  JPEG, PNG, GIF, WEBP, HEIC, HEIF（大きい画像は自動リサイズ）
                 </p>
                 {selectedFile && (
                   <p className="text-sm text-green-600 mt-2">Selected file: {selectedFile.name}</p>
