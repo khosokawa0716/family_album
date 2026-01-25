@@ -51,9 +51,6 @@ export default function PhotoList() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* カテゴリフィルター（タブスタイル） */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
-                </label>
                 <div
                   role="radiogroup"
                   aria-label="カテゴリを選択"
