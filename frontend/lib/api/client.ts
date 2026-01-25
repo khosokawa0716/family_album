@@ -1,3 +1,5 @@
+const DEFAULT_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
+
 class ApiError extends Error {
   public status: number;
   public statusText: string;
@@ -13,7 +15,7 @@ class ApiError extends Error {
 class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "http://localhost:8080/api") {
+  constructor(baseUrl: string = DEFAULT_BASE) {
     this.baseUrl = baseUrl;
   }
 
