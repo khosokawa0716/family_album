@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, extract, desc
 from typing import Optional, Union
 from datetime import datetime
-from PIL import Image, ExifTags
+from PIL import Image, ExifTags, ImageOps
 from pillow_heif import register_heif_opener
 import uuid
 import os
@@ -417,8 +417,19 @@ async def upload_picture(
         # PIL で画像を開いて検証
         image = Image.open(BytesIO(file_content))
 
-        # 画像サイズ取得
+        # EXIF Orientationに基づいて画像を正しい向きに回転
+        # iPhoneなどで撮影した写真の回転問題を解決
+        image = ImageOps.exif_transpose(image)
+
+        # 画像サイズ取得（回転補正後のサイズ）
         width, height = image.size
+
+        # 大きい画像はリサイズ（長辺2048px以下に）
+        MAX_IMAGE_SIZE = 2048
+        if max(width, height) > MAX_IMAGE_SIZE:
+            image.thumbnail((MAX_IMAGE_SIZE, MAX_IMAGE_SIZE), Image.Resampling.LANCZOS)
+            width, height = image.size
+            logger.info(f"Image resized to {width}x{height}")
 
         # HEIC/HEIF画像の場合はPNG形式に変換
         pil_format = image.format
