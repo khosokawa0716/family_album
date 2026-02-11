@@ -1,11 +1,9 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { useLogin } from "@/hooks/useLogin";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const { login, isLoading, error } = useLogin();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -16,9 +14,13 @@ export default function Login() {
     }
   }, [isAuthenticated, authLoading, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await login({ user_name: username, password });
+    const formData = new FormData(e.currentTarget);
+    await login({
+      user_name: String(formData.get("username") ?? ""),
+      password: String(formData.get("password") ?? ""),
+    });
   };
 
   if (authLoading) {
@@ -46,7 +48,7 @@ export default function Login() {
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit} autoComplete="on" method="post">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700">
                 ユーザー名
@@ -58,8 +60,6 @@ export default function Login() {
                   type="text"
                   autoComplete="username"
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   placeholder="ユーザー名を入力"
                 />
@@ -77,8 +77,6 @@ export default function Login() {
                   type="password"
                   autoComplete="current-password"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   placeholder="パスワードを入力"
                 />
