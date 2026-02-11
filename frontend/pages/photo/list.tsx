@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 import { usePhotoList } from "@/hooks/usePhotoList";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { formatDate } from "@/utils/date";
@@ -6,7 +8,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 
 /**
  * 写真一覧ページ（無限スクロール対応）
- * 
+ *
  * このコンポーネントは以下の機能を提供します：
  * - 写真の一覧表示（グリッドレイアウト）
  * - カテゴリによるフィルタリング
@@ -14,25 +16,70 @@ import { AuthGuard } from "@/components/AuthGuard";
  * - 手動での追加読み込み（オプション）
  */
 export default function PhotoList() {
+  const router = useRouter();
+  const SCROLL_POSITION_KEY = "photo-list-scroll-position";
+
   // === カスタムフックからデータと関数を取得 ===
-  const { 
-    photos,              // 表示する写真データの配列
-    categories,          // 利用可能なカテゴリ一覧
-    loading,             // 現在データを読み込み中かどうか
-    hasMore,             // まだ読み込めるデータがあるかどうか
-    selectedCategory,    // 現在選択されているカテゴリ
+  const {
+    photos, // 表示する写真データの配列
+    categories, // 利用可能なカテゴリ一覧
+    loading, // 現在データを読み込み中かどうか
+    hasMore, // まだ読み込めるデータがあるかどうか
+    selectedCategory, // 現在選択されているカテゴリ
     setSelectedCategory, // カテゴリ選択を変更する関数
-    loadMorePhotos       // 追加の写真を読み込む関数
+    loadMorePhotos, // 追加の写真を読み込む関数
   } = usePhotoList();
 
   // === 無限スクロール用の監視要素を設定 ===
   // この要素が画面に表示されると自動的に次のページが読み込まれます
   const sentinelRef = useInfiniteScroll({
-    hasMore,           // まだ読み込めるデータがある場合のみ監視
-    loading,           // 読み込み中は重複リクエストを防ぐ
+    hasMore, // まだ読み込めるデータがある場合のみ監視
+    loading, // 読み込み中は重複リクエストを防ぐ
     onLoadMore: loadMorePhotos, // スクロール時に実行される関数
-    threshold: 200,    // 画面下端から200px手前で読み込み開始
+    threshold: 200, // 画面下端から200px手前で読み込み開始
   });
+
+  // === スクロール位置の保存・復元 ===
+  useEffect(() => {
+    // ページ読み込み時にスクロール位置を復元
+    const savedPosition = sessionStorage.getItem(SCROLL_POSITION_KEY);
+    if (savedPosition && photos.length > 0) {
+      // 写真データが読み込まれた後に実行
+      const timeout = setTimeout(() => {
+        window.scrollTo(0, parseInt(savedPosition));
+        console.log("スクロール位置を復元:", savedPosition);
+      }, 100);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [photos.length]);
+
+  useEffect(() => {
+    // スクロール位置を定期的に保存
+    const handleScroll = () => {
+      sessionStorage.setItem(SCROLL_POSITION_KEY, window.scrollY.toString());
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // === 詳細ページへの移動処理 ===
+  const handlePhotoClick = (photoId: number) => {
+    // 現在のスクロール位置を保存してから詳細ページへ移動
+    sessionStorage.setItem(SCROLL_POSITION_KEY, window.scrollY.toString());
+    console.log("詳細ページへ移動、スクロール位置を保存:", window.scrollY);
+    router.push(`/photo/detail/${photoId}`);
+  };
+
+  // === カテゴリ変更時の処理 ===
+  const handleCategoryChange = (category: string) => {
+    console.log("カテゴリ変更:", category);
+    // カテゴリ変更時はスクロール位置をリセット
+    sessionStorage.removeItem(SCROLL_POSITION_KEY);
+    setSelectedCategory(category);
+    window.scrollTo(0, 0);
+  };
 
   return (
     <AuthGuard>
@@ -51,26 +98,20 @@ export default function PhotoList() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* カテゴリフィルター（タブスタイル） */}
               <div>
-                <div
-                  role="radiogroup"
-                  aria-label="カテゴリを選択"
-                  className="flex flex-wrap gap-2"
-                >
+                <div role="radiogroup" aria-label="カテゴリを選択" className="flex flex-wrap gap-2">
                   {/* 「すべて」タブ */}
                   <button
                     type="button"
                     role="radio"
                     aria-checked={selectedCategory === "すべて"}
-                    onClick={() => {
-                      console.log("カテゴリ変更: すべて");
-                      setSelectedCategory("すべて");
-                    }}
+                    onClick={() => handleCategoryChange("すべて")}
                     className={`
                       min-h-[44px] px-4 py-2 rounded-lg text-sm font-medium
                       border-2 transition-colors
-                      ${selectedCategory === "すべて"
-                        ? "bg-indigo-600 text-white border-indigo-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400 hover:bg-indigo-50"
+                      ${
+                        selectedCategory === "すべて"
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400 hover:bg-indigo-50"
                       }
                     `}
                   >
@@ -83,16 +124,14 @@ export default function PhotoList() {
                       type="button"
                       role="radio"
                       aria-checked={selectedCategory === String(category.id)}
-                      onClick={() => {
-                        console.log("カテゴリ変更:", category.id);
-                        setSelectedCategory(String(category.id));
-                      }}
+                      onClick={() => handleCategoryChange(String(category.id))}
                       className={`
                         min-h-[44px] px-4 py-2 rounded-lg text-sm font-medium
                         border-2 transition-colors
-                        ${selectedCategory === String(category.id)
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400 hover:bg-indigo-50"
+                        ${
+                          selectedCategory === String(category.id)
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400 hover:bg-indigo-50"
                         }
                       `}
                     >
@@ -101,7 +140,7 @@ export default function PhotoList() {
                   ))}
                 </div>
               </div>
-              
+
               {/* 日付フィルター（将来実装予定のためコメントアウト） */}
               {/* <div>
                 <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
@@ -127,27 +166,22 @@ export default function PhotoList() {
               <div
                 key={photo.id}
                 className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => {
-                  console.log("写真詳細ページへ移動:", photo.id);
-                  window.location.href = `/photo/detail/${photo.id}`;
-                }}
+                onClick={() => handlePhotoClick(photo.id)}
               >
                 {/* 写真のサムネイル画像 */}
                 <img
                   src={photo.thumbnail_path || ""}
                   alt={photo.title || "Photo"}
                   className="w-full h-48 object-cover rounded-t-lg"
-                  onError={(e) => {
+                  onError={() => {
                     console.error("画像読み込みエラー:", photo.id);
                     // エラー時の代替画像設定などを将来実装予定
                   }}
                 />
-                
+
                 {/* 写真の情報 */}
                 <div className="p-3 sm:p-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    {photo.title || "無題"}
-                  </h3>
+                  <h3 className="text-lg font-medium text-gray-900">{photo.title || "無題"}</h3>
                   <p className="text-sm text-gray-500 mt-1">
                     {photo.description || "説明がありません"}
                   </p>
@@ -169,24 +203,20 @@ export default function PhotoList() {
             <div className="text-center py-8">
               <div className="inline-flex items-center">
                 {/* 回転するスピナーアイコン */}
-                <svg 
-                  className="animate-spin h-5 w-5 mr-3 text-indigo-600" 
+                <svg
+                  className="animate-spin h-5 w-5 mr-3 text-indigo-600"
                   viewBox="0 0 24 24"
                   fill="none"
                 >
-                  <circle 
-                    className="opacity-25" 
-                    cx="12" 
-                    cy="12" 
-                    r="10" 
-                    stroke="currentColor" 
-                    strokeWidth="4" 
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
                   />
-                  <path 
-                    className="opacity-75" 
-                    fill="currentColor" 
-                    d="M4 12a8 8 0 018-8v8H4z" 
-                  />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
                 <span className="text-gray-600">読み込み中...</span>
               </div>
@@ -196,18 +226,14 @@ export default function PhotoList() {
           {/* === 全件読み込み完了メッセージ === */}
           {!hasMore && photos.length > 0 && (
             <div className="text-center py-8">
-              <p className="text-gray-500">
-                すべての写真を読み込みました ({photos.length}件)
-              </p>
+              <p className="text-gray-500">すべての写真を読み込みました ({photos.length}件)</p>
             </div>
           )}
 
           {/* === データが存在しない場合のメッセージ === */}
           {!loading && photos.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">
-                写真が見つかりませんでした
-              </p>
+              <p className="text-gray-500 text-lg">写真が見つかりませんでした</p>
               <p className="text-gray-400 text-sm mt-2">
                 フィルター条件を変更するか、新しい写真をアップロードしてください
               </p>

@@ -48,16 +48,10 @@ const LogRow = ({ log }: { log: OperationLogResponse }) => {
       <td className={`px-6 py-4 whitespace-nowrap text-sm ${getOperationClass(log.operation)}`}>
         {log.operation}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-        {log.target_type}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-        {log.target_id ?? "-"}
-      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{log.target_type}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{log.target_id ?? "-"}</td>
       <td className="px-6 py-4 text-sm text-gray-700 max-w-md truncate">
-        <span className="whitespace-pre-wrap break-all">
-          {formatDetail(log.detail)}
-        </span>
+        <span className="whitespace-pre-wrap break-all">{formatDetail(log.detail)}</span>
       </td>
     </tr>
   );
@@ -80,9 +74,7 @@ export default function AdminLog() {
             {loading ? (
               <div className="p-6 text-center text-gray-600">Loading...</div>
             ) : logs.length === 0 ? (
-              <div className="p-6 text-center text-gray-600">
-                操作ログはありません
-              </div>
+              <div className="p-6 text-center text-gray-600">操作ログはありません</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">

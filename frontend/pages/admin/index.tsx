@@ -46,9 +46,7 @@ export default function AdminMenu() {
                 <div className="flex items-start space-x-4">
                   <div className="text-4xl">{item.icon}</div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {item.title}
-                    </h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.title}</h3>
                     <p className="text-sm text-gray-600">{item.description}</p>
                   </div>
                 </div>

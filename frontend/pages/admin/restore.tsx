@@ -48,9 +48,7 @@ export default function AdminRestore() {
             ) : error ? (
               <div className="p-6 text-center text-red-600">{error}</div>
             ) : deletedPictures.length === 0 ? (
-              <div className="p-6 text-center text-gray-600">
-                削除済み写真はありません
-              </div>
+              <div className="p-6 text-center text-gray-600">削除済み写真はありません</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -119,9 +117,7 @@ export default function AdminRestore() {
               className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                写真の復元
-              </h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">写真の復元</h3>
               <p className="text-gray-700 mb-6">この写真を復元しますか？</p>
               <div className="flex justify-end space-x-4">
                 <button

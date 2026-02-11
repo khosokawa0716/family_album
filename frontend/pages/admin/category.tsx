@@ -5,7 +5,8 @@ import { useAdminCategories } from "@/hooks/useAdminCategories";
 import { CategoryResponse } from "@/types/categories";
 
 export default function AdminCategory() {
-  const { categories, isLoading, createCategory, updateCategory, deleteCategory } = useAdminCategories();
+  const { categories, isLoading, createCategory, updateCategory, deleteCategory } =
+    useAdminCategories();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -192,7 +193,10 @@ export default function AdminCategory() {
                   />
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     説明
                   </label>
                   <textarea
@@ -204,9 +208,7 @@ export default function AdminCategory() {
                     disabled={isSubmitting}
                   />
                 </div>
-                {formError && (
-                  <div className="mb-4 text-sm text-red-600">{formError}</div>
-                )}
+                {formError && <div className="mb-4 text-sm text-red-600">{formError}</div>}
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
@@ -242,7 +244,10 @@ export default function AdminCategory() {
               <h2 className="text-xl font-bold text-gray-900 mb-4">カテゴリ編集</h2>
               <form onSubmit={handleEditSubmit}>
                 <div className="mb-4">
-                  <label htmlFor="edit-name" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="edit-name"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     カテゴリ名 <span className="text-red-600">*</span>
                   </label>
                   <input
@@ -255,7 +260,10 @@ export default function AdminCategory() {
                   />
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="edit-description"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     説明
                   </label>
                   <textarea
@@ -267,9 +275,7 @@ export default function AdminCategory() {
                     disabled={isSubmitting}
                   />
                 </div>
-                {formError && (
-                  <div className="mb-4 text-sm text-red-600">{formError}</div>
-                )}
+                {formError && <div className="mb-4 text-sm text-red-600">{formError}</div>}
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"

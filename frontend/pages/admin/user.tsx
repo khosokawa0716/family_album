@@ -5,7 +5,8 @@ import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { UserCreateRequest, UserUpdateRequest } from "@/types/users";
 
 export default function AdminUser() {
-  const { users, currentUser, loading, error, createUser, updateUser, deleteUser } = useAdminUsers();
+  const { users, currentUser, loading, error, createUser, updateUser, deleteUser } =
+    useAdminUsers();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -161,9 +162,7 @@ export default function AdminUser() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         {user.user_name}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {user.email || "-"}
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{user.email || "-"}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {user.type === 10 ? "管理者" : "一般"}
                       </td>
@@ -196,12 +195,18 @@ export default function AdminUser() {
         {/* 新規ユーザー追加モーダル */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h2 className="text-xl font-bold text-gray-900 mb-4">新規ユーザー追加</h2>
               <form onSubmit={handleCreateUser}>
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="create-user-name" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="create-user-name"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       ユーザー名 *
                     </label>
                     <input
@@ -214,7 +219,10 @@ export default function AdminUser() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="create-password" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="create-password"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       パスワード *
                     </label>
                     <input
@@ -227,7 +235,10 @@ export default function AdminUser() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="create-email" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="create-email"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       メールアドレス
                     </label>
                     <input
@@ -239,13 +250,18 @@ export default function AdminUser() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="create-type" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="create-type"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       権限
                     </label>
                     <select
                       id="create-type"
                       value={createForm.type}
-                      onChange={(e) => setCreateForm({ ...createForm, type: Number(e.target.value) })}
+                      onChange={(e) =>
+                        setCreateForm({ ...createForm, type: Number(e.target.value) })
+                      }
                       className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     >
                       <option value={0}>一般</option>
@@ -279,12 +295,18 @@ export default function AdminUser() {
         {/* ユーザー編集モーダル */}
         {showEditModal && selectedUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h2 className="text-xl font-bold text-gray-900 mb-4">ユーザー編集</h2>
               <form onSubmit={handleEditUser}>
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="edit-user-name" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="edit-user-name"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       ユーザー名 *
                     </label>
                     <input
@@ -297,7 +319,10 @@ export default function AdminUser() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="edit-email" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="edit-email"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       メールアドレス
                     </label>
                     <input
@@ -309,7 +334,10 @@ export default function AdminUser() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="edit-type" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="edit-type"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       権限
                     </label>
                     <select
@@ -323,7 +351,10 @@ export default function AdminUser() {
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="edit-status" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="edit-status"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       状態
                     </label>
                     <select
@@ -336,7 +367,9 @@ export default function AdminUser() {
                       <option value={1}>有効</option>
                       <option value={0}>無効</option>
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">※状態の変更は現在サポートされていません</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      ※状態の変更は現在サポートされていません
+                    </p>
                   </div>
                 </div>
                 <div className="mt-6 flex justify-end space-x-3">
@@ -365,7 +398,10 @@ export default function AdminUser() {
         {/* 削除確認ダイアログ */}
         {showDeleteDialog && selectedUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h2 className="text-xl font-bold text-gray-900 mb-4">ユーザー削除確認</h2>
               <p className="text-gray-700 mb-6">
                 ユーザー「{selectedUser.user_name}」を削除してもよろしいですか？

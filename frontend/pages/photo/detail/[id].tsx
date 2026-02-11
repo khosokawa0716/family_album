@@ -78,7 +78,11 @@ export default function PhotoDetail() {
       <div className="min-h-screen bg-gray-50">
         <PageHeader title="Detail">
           <button
-            onClick={() => router.push("/photo/list")}
+            onClick={() => {
+              // 戻るボタンクリック時に写真一覧ページのスクロール位置記憶用フラグをクリア
+              // （新しく詳細ページから戻った場合は復元したいため）
+              router.push("/photo/list");
+            }}
             className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
           >
             Back

@@ -14,8 +14,8 @@ export const useAdminLogs = () => {
         setError(null);
         const response = await logService.getLogs();
         // 降順ソート（最新のログが上）
-        const sortedLogs = response.sort((a, b) =>
-          new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
+        const sortedLogs = response.sort(
+          (a, b) => new Date(b.create_date).getTime() - new Date(a.create_date).getTime(),
         );
         setLogs(sortedLogs);
       } catch (err) {

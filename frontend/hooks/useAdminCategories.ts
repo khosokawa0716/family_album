@@ -38,7 +38,10 @@ export const useAdminCategories = () => {
     }
   };
 
-  const updateCategory = async (categoryId: number, categoryData: CategoryUpdateRequest): Promise<void> => {
+  const updateCategory = async (
+    categoryId: number,
+    categoryData: CategoryUpdateRequest,
+  ): Promise<void> => {
     try {
       await categoryService.updateCategory(categoryId, categoryData);
       await fetchCategories();

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Image, LogOut, Upload, User } from "lucide-react";
+import { Image, LogOut, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface PageHeaderProps {
@@ -15,9 +15,7 @@ export default function PageHeader({ title, children }: PageHeaderProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4 sm:py-6">
           <div className="flex items-center space-x-8">
-            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
-              {title}
-            </h1>
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">{title}</h1>
             <nav className="flex space-x-2 sm:space-x-4">
               <Link
                 href="/photo/list"
@@ -41,9 +39,7 @@ export default function PageHeader({ title, children }: PageHeaderProps) {
             {children}
             {user && (
               <div className="flex items-center space-x-2 sm:space-x-3">
-                <span className="hidden sm:inline text-sm text-gray-600">
-                  {user.user_name}
-                </span>
+                <span className="hidden sm:inline text-sm text-gray-600">{user.user_name}</span>
                 <button
                   onClick={logout}
                   className="bg-gray-600 hover:bg-gray-700 text-white px-2 sm:px-3 py-2 rounded-md text-sm font-medium inline-flex items-center"

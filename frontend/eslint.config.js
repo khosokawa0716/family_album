@@ -1,5 +1,6 @@
 import js from "@eslint/js";
 import parser from "@typescript-eslint/parser";
+import globals from "globals";
 
 export default [
   {
@@ -18,14 +19,9 @@ export default [
         },
       },
       globals: {
+        ...globals.browser,
+        ...globals.node,
         React: "readonly",
-        console: "readonly",
-        window: "readonly",
-        document: "readonly",
-        sessionStorage: "readonly",
-        localStorage: "readonly",
-        alert: "readonly",
-        globalThis: "readonly",
       },
     },
     rules: {
@@ -36,14 +32,9 @@ export default [
     files: ["**/*.{js,jsx}"],
     languageOptions: {
       globals: {
+        ...globals.browser,
+        ...globals.node,
         React: "readonly",
-        console: "readonly",
-        window: "readonly",
-        document: "readonly",
-        sessionStorage: "readonly",
-        localStorage: "readonly",
-        alert: "readonly",
-        globalThis: "readonly",
       },
     },
     rules: {
