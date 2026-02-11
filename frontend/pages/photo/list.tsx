@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { usePhotoList } from "@/hooks/usePhotoList";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
@@ -18,6 +18,9 @@ import { AuthGuard } from "@/components/AuthGuard";
 export default function PhotoList() {
   const router = useRouter();
   const SCROLL_POSITION_KEY = "photo-list-scroll-position";
+  const isRestoringScrollRef = useRef(false);
+  const isNavigatingToDetailRef = useRef(false);
+  const hasRestoredScrollRef = useRef(false);
 
   // === カスタムフックからデータと関数を取得 ===
   const {
@@ -43,20 +46,32 @@ export default function PhotoList() {
   useEffect(() => {
     // ページ読み込み時にスクロール位置を復元
     const savedPosition = sessionStorage.getItem(SCROLL_POSITION_KEY);
-    if (savedPosition && photos.length > 0) {
+    if (savedPosition && photos.length > 0 && !hasRestoredScrollRef.current) {
+      isRestoringScrollRef.current = true;
+      hasRestoredScrollRef.current = true;
+      // 保存値は1回使ったら破棄し、古い位置の再利用を防ぐ
+      sessionStorage.removeItem(SCROLL_POSITION_KEY);
+
       // 写真データが読み込まれた後に実行
       const timeout = setTimeout(() => {
-        window.scrollTo(0, parseInt(savedPosition));
+        window.scrollTo(0, parseInt(savedPosition, 10));
         console.log("スクロール位置を復元:", savedPosition);
+        isRestoringScrollRef.current = false;
       }, 100);
 
-      return () => clearTimeout(timeout);
+      return () => {
+        clearTimeout(timeout);
+        isRestoringScrollRef.current = false;
+      };
     }
   }, [photos.length]);
 
   useEffect(() => {
     // スクロール位置を定期的に保存
     const handleScroll = () => {
+      if (isRestoringScrollRef.current || isNavigatingToDetailRef.current) {
+        return;
+      }
       sessionStorage.setItem(SCROLL_POSITION_KEY, window.scrollY.toString());
     };
 
@@ -67,9 +82,14 @@ export default function PhotoList() {
   // === 詳細ページへの移動処理 ===
   const handlePhotoClick = (photoId: number) => {
     // 現在のスクロール位置を保存してから詳細ページへ移動
-    sessionStorage.setItem(SCROLL_POSITION_KEY, window.scrollY.toString());
+    const currentScrollY = window.scrollY.toString();
+    sessionStorage.setItem(SCROLL_POSITION_KEY, currentScrollY);
+    isNavigatingToDetailRef.current = true;
     console.log("詳細ページへ移動、スクロール位置を保存:", window.scrollY);
-    router.push(`/photo/detail/${photoId}`);
+    void router.push(`/photo/detail/${photoId}`, undefined, { scroll: false }).finally(() => {
+      // 遷移失敗時に保存停止状態のまま残らないようにする
+      isNavigatingToDetailRef.current = false;
+    });
   };
 
   // === カテゴリ変更時の処理 ===
