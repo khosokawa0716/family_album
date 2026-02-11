@@ -13,6 +13,10 @@ export interface PictureResponse {
   id: number;
   family_id: number;
   uploaded_by: number;
+  user?: {
+    id: number;
+    user_name: string;
+  } | null;
   title: string | null;
   description: string | null;
   file_path: string;

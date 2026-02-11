@@ -202,6 +202,9 @@ export default function PhotoList() {
                 {/* 写真の情報 */}
                 <div className="p-3 sm:p-4">
                   <h3 className="text-lg font-medium text-gray-900">{photo.title || "無題"}</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    投稿者: {photo.user?.user_name || "不明"}
+                  </p>
                   <p className="text-sm text-gray-500 mt-1">
                     {photo.description || "説明がありません"}
                   </p>

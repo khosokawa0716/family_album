@@ -25,6 +25,39 @@ logger = logging.getLogger(__name__)
 # HEIC画像サポートを有効化
 register_heif_opener()
 
+def build_picture_response_data(picture: Picture, user_name: Optional[str] = None, signed_urls: bool = True):
+    """PictureResponse の共通レスポンス構造を生成する。"""
+    if signed_urls:
+        filename = os.path.basename(picture.file_path)
+        file_path = create_signed_url(filename, "photos", expires_in=1800)
+        thumbnail_path = create_signed_url(f"thumb_{filename}", "thumbnails", expires_in=1800)
+    else:
+        file_path = picture.file_path
+        thumbnail_path = picture.thumbnail_path
+
+    return {
+        "id": picture.id,
+        "family_id": picture.family_id,
+        "uploaded_by": picture.uploaded_by,
+        "title": picture.title,
+        "description": picture.description,
+        "file_path": file_path,
+        "thumbnail_path": thumbnail_path,
+        "file_size": picture.file_size,
+        "mime_type": picture.mime_type,
+        "width": picture.width,
+        "height": picture.height,
+        "taken_date": picture.taken_date,
+        "category_id": picture.category_id,
+        "status": picture.status,
+        "create_date": picture.create_date,
+        "update_date": picture.update_date,
+        "user": {
+            "id": picture.uploaded_by,
+            "user_name": user_name
+        } if user_name else None
+    }
+
 @router.get("/pictures", response_model=PictureListResponse)
 def get_pictures(
     limit: int = Query(20, ge=1, le=100, description="取得件数（最大100件）"),
@@ -54,7 +87,7 @@ def get_pictures(
     """
 
     # 基本クエリ: 自分の家族の有効な写真のみ
-    query = db.query(Picture).filter(
+    query = db.query(Picture, User.user_name).outerjoin(User, Picture.uploaded_by == User.id).filter(
         and_(
             Picture.family_id == current_user.family_id,
             Picture.status == 1
@@ -127,34 +160,8 @@ def get_pictures(
 
     # 署名付きURLを生成するため、レスポンス用のデータを作成
     picture_responses = []
-    for picture in pictures:
-        # ファイル名を取得して署名付きURLを生成
-        filename = os.path.basename(picture.file_path)
-
-        # 署名付きURL生成（30分有効）
-        thumbnail_url = create_signed_url(f"thumb_{filename}", "thumbnails", expires_in=1800)
-        photo_url = create_signed_url(filename, "photos", expires_in=1800)
-
-        # PictureResponseオブジェクトを作成（署名付きURLを設定）
-        picture_data = {
-            "id": picture.id,
-            "family_id": picture.family_id,
-            "uploaded_by": picture.uploaded_by,
-            "title": picture.title,
-            "description": picture.description,
-            "file_path": photo_url,  # 署名付きオリジナル画像URL
-            "thumbnail_path": thumbnail_url,  # 署名付きサムネイルURL
-            "file_size": picture.file_size,
-            "mime_type": picture.mime_type,
-            "width": picture.width,
-            "height": picture.height,
-            "taken_date": picture.taken_date,
-            "category_id": picture.category_id,
-            "status": picture.status,
-            "create_date": picture.create_date,
-            "update_date": picture.update_date
-        }
-        picture_responses.append(picture_data)
+    for picture, user_name in pictures:
+        picture_responses.append(build_picture_response_data(picture, user_name, signed_urls=True))
 
     # 次ページ存在判定
     has_more = (offset + limit) < total
@@ -201,7 +208,7 @@ def get_deleted_pictures(
         raise HTTPException(status_code=403, detail="Admin access required")
 
     # 基本クエリ: 自分の家族の削除済み写真のみ
-    query = db.query(Picture).filter(
+    query = db.query(Picture, User.user_name).outerjoin(User, Picture.uploaded_by == User.id).filter(
         and_(
             Picture.family_id == current_user.family_id,
             Picture.status == 0
@@ -219,34 +226,8 @@ def get_deleted_pictures(
 
     # 署名付きURLを生成するため、レスポンス用のデータを作成
     picture_responses = []
-    for picture in pictures:
-        # ファイル名を取得して署名付きURLを生成
-        filename = os.path.basename(picture.file_path)
-
-        # 署名付きURL生成（30分有効）
-        thumbnail_url = create_signed_url(f"thumb_{filename}", "thumbnails", expires_in=1800)
-        photo_url = create_signed_url(filename, "photos", expires_in=1800)
-
-        # PictureResponseオブジェクトを作成（署名付きURLを設定）
-        picture_data = {
-            "id": picture.id,
-            "family_id": picture.family_id,
-            "uploaded_by": picture.uploaded_by,
-            "title": picture.title,
-            "description": picture.description,
-            "file_path": photo_url,  # 署名付きオリジナル画像URL
-            "thumbnail_path": thumbnail_url,  # 署名付きサムネイルURL
-            "file_size": picture.file_size,
-            "mime_type": picture.mime_type,
-            "width": picture.width,
-            "height": picture.height,
-            "taken_date": picture.taken_date,
-            "category_id": picture.category_id,
-            "status": picture.status,
-            "create_date": picture.create_date,
-            "update_date": picture.update_date
-        }
-        picture_responses.append(picture_data)
+    for picture, user_name in pictures:
+        picture_responses.append(build_picture_response_data(picture, user_name, signed_urls=True))
 
     # 次ページ存在判定
     has_more = (offset + limit) < total
@@ -287,7 +268,9 @@ def get_picture_detail(
     """
 
     # 家族スコープでの写真取得（削除済みは除外）
-    picture = db.query(Picture).filter(
+    picture_with_user = db.query(Picture, User.user_name).outerjoin(
+        User, Picture.uploaded_by == User.id
+    ).filter(
         and_(
             Picture.id == picture_id,
             Picture.family_id == current_user.family_id,
@@ -295,37 +278,11 @@ def get_picture_detail(
         )
     ).first()
 
-    if not picture:
+    if not picture_with_user:
         raise HTTPException(status_code=404, detail="Picture not found")
 
-    # 署名付きURLを生成してレスポンスデータを作成
-    filename = os.path.basename(picture.file_path)
-
-    # 署名付きURL生成（30分有効）
-    thumbnail_url = create_signed_url(f"thumb_{filename}", "thumbnails", expires_in=1800)
-    photo_url = create_signed_url(filename, "photos", expires_in=1800)
-
-    # PictureResponseオブジェクトを作成（署名付きURLを設定）
-    picture_data = {
-        "id": picture.id,
-        "family_id": picture.family_id,
-        "uploaded_by": picture.uploaded_by,
-        "title": picture.title,
-        "description": picture.description,
-        "file_path": photo_url,  # 署名付きオリジナル画像URL
-        "thumbnail_path": thumbnail_url,  # 署名付きサムネイルURL
-        "file_size": picture.file_size,
-        "mime_type": picture.mime_type,
-        "width": picture.width,
-        "height": picture.height,
-        "taken_date": picture.taken_date,
-        "category_id": picture.category_id,
-        "status": picture.status,
-        "create_date": picture.create_date,
-        "update_date": picture.update_date
-    }
-
-    return picture_data
+    picture, user_name = picture_with_user
+    return build_picture_response_data(picture, user_name, signed_urls=True)
 
 
 @router.post("/pictures", response_model=PictureResponse, status_code=201)
@@ -569,7 +526,7 @@ async def upload_picture(
         db.refresh(picture)
 
         logger.info(f"Picture saved to database: ID={picture.id}, User={current_user.id}")
-        return picture
+        return build_picture_response_data(picture, current_user.user_name, signed_urls=False)
 
     except Exception as e:
         logger.error(f"Database save failed: {e}")
@@ -645,7 +602,8 @@ def update_picture(
         db.refresh(picture)
 
         logger.info(f"Picture updated: ID={picture_id}, User={current_user.id}")
-        return picture
+        uploader_name = db.query(User.user_name).filter(User.id == picture.uploaded_by).scalar()
+        return build_picture_response_data(picture, uploader_name, signed_urls=False)
 
     except Exception as e:
         logger.error(f"Failed to update picture {picture_id}: {e}")
@@ -1034,5 +992,4 @@ def get_photo_by_filename(
     except Exception as e:
         logger.error(f"Failed to create file response for photo {file_path}: {e}")
         raise HTTPException(status_code=500, detail="Failed to serve photo file")
-
 

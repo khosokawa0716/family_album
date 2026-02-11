@@ -144,6 +144,9 @@ export default function PhotoDetail() {
                 {photo.title && (
                   <h2 className="text-xl font-bold text-gray-900 mb-2">{photo.title}</h2>
                 )}
+                <p className="text-sm text-gray-500 mb-1">
+                  投稿者: {photo.user?.user_name || "不明"}
+                </p>
                 {photo.description && <p className="text-gray-600">{photo.description}</p>}
                 {!photo.title && !photo.description && (
                   <p className="text-gray-400 italic">タイトル・説明なし</p>

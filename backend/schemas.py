@@ -152,6 +152,11 @@ class CategoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PictureUserResponse(BaseModel):
+    id: int
+    user_name: str
+
+
 class PictureResponse(BaseModel):
     id: int
     family_id: int
@@ -169,6 +174,7 @@ class PictureResponse(BaseModel):
     status: int
     create_date: datetime
     update_date: datetime
+    user: Optional[PictureUserResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
 
