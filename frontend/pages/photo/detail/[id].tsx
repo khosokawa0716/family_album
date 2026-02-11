@@ -176,12 +176,14 @@ export default function PhotoDetail() {
                   編集
                 </button>
               )}
-              <button
-                onClick={handleDeletePhoto}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
-                削除
-              </button>
+              {user?.type === 10 && (
+                <button
+                  onClick={handleDeletePhoto}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  削除
+                </button>
+              )}
             </div>
           </div>
 
