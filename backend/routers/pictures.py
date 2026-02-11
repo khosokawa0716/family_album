@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, extract, desc
-from typing import Optional, Union
+from sqlalchemy import and_, extract, desc, func
+from typing import Optional, Union, List
 from datetime import datetime
 from PIL import Image, ExifTags, ImageOps
 from pillow_heif import register_heif_opener
@@ -14,7 +14,10 @@ from io import BytesIO
 
 from database import get_db
 from models import Picture, User, Category
-from schemas import PictureListResponse, PictureResponse, PictureUpdateRequest
+from schemas import (
+    PictureListResponse, PictureResponse, PictureUpdateRequest,
+    PictureUploadResponse, PictureGroupResponse, PictureGroupListResponse
+)
 from dependencies import get_current_user
 from config.storage import get_storage_config, StorageConfig
 from utils.url_signature import verify_url_signature, get_signature_info, create_signed_url
@@ -39,6 +42,7 @@ def build_picture_response_data(picture: Picture, user_name: Optional[str] = Non
         "id": picture.id,
         "family_id": picture.family_id,
         "uploaded_by": picture.uploaded_by,
+        "group_id": picture.group_id,
         "title": picture.title,
         "description": picture.description,
         "file_path": file_path,
@@ -241,6 +245,190 @@ def get_deleted_pictures(
     )
 
 
+@router.get("/pictures/groups", response_model=PictureGroupListResponse)
+def get_picture_groups(
+    limit: int = Query(20, ge=1, le=100, description="取得グループ数（最大100）"),
+    offset: int = Query(0, ge=0, description="開始位置"),
+    category: Optional[str] = Query(None, description="カテゴリID（カンマ区切りで複数指定可）"),
+    category_and: Optional[str] = Query(None, description="カテゴリID（AND検索、カンマ区切り）"),
+    year: Optional[int] = Query(None, ge=1900, le=2100, description="撮影年"),
+    month: Optional[int] = Query(None, ge=1, le=12, description="撮影月"),
+    start_date: Optional[str] = Query(None, description="開始日（YYYY-MM-DD形式）"),
+    end_date: Optional[str] = Query(None, description="終了日（YYYY-MM-DD形式）"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    写真グループ一覧取得API
+
+    group_id単位でグループ化された写真一覧を返す。
+    各グループには同時投稿された全写真が含まれる。
+    ページネーションはグループ数ベース。
+
+    フィルタリング・ソートは既存の写真一覧APIと同等。
+    """
+
+    # 基本フィルタ
+    base_filter = and_(
+        Picture.family_id == current_user.family_id,
+        Picture.status == 1
+    )
+
+    filters = [base_filter]
+
+    # カテゴリフィルタ（OR検索）
+    if category:
+        try:
+            category_ids = [int(cid.strip()) for cid in category.split(',')]
+            filters.append(Picture.category_id.in_(category_ids))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid category format")
+
+    # カテゴリフィルタ（AND検索）
+    if category_and:
+        try:
+            category_ids = [int(cid.strip()) for cid in category_and.split(',')]
+            for cid in category_ids:
+                subquery = db.query(Picture.id).filter(
+                    and_(
+                        Picture.family_id == current_user.family_id,
+                        Picture.category_id == cid,
+                        Picture.status == 1
+                    )
+                )
+                filters.append(Picture.id.in_(subquery))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid category_and format")
+
+    # 年フィルタ
+    if year:
+        filters.append(extract('year', Picture.taken_date) == year)
+
+    # 月フィルタ
+    if month:
+        if not year:
+            raise HTTPException(status_code=400, detail="Year is required when filtering by month")
+        filters.append(extract('month', Picture.taken_date) == month)
+
+    # 日付範囲フィルタ
+    if start_date or end_date:
+        try:
+            if start_date:
+                start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+                filters.append(Picture.taken_date >= start_dt)
+            if end_date:
+                end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+                end_dt = end_dt.replace(hour=23, minute=59, second=59)
+                filters.append(Picture.taken_date <= end_dt)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+    combined_filter = and_(*filters)
+
+    # クエリ1: グループ一覧（ページネーション付き）
+    group_query = db.query(
+        Picture.group_id,
+        func.max(Picture.taken_date).label("latest_taken"),
+        func.max(Picture.create_date).label("latest_created")
+    ).filter(combined_filter).group_by(Picture.group_id)
+
+    total = group_query.count()
+
+    group_query = group_query.order_by(
+        desc(func.max(Picture.taken_date).is_(None)),
+        desc(func.max(Picture.taken_date)),
+        desc(func.max(Picture.create_date))
+    ).offset(offset).limit(limit)
+
+    group_rows = group_query.all()
+    group_ids = [row.group_id for row in group_rows]
+
+    if not group_ids:
+        return PictureGroupListResponse(
+            groups=[],
+            total=total,
+            limit=limit,
+            offset=offset,
+            has_more=False
+        )
+
+    # クエリ2: グループ内の全写真取得
+    pictures_with_users = db.query(Picture, User.user_name).outerjoin(
+        User, Picture.uploaded_by == User.id
+    ).filter(
+        and_(
+            Picture.group_id.in_(group_ids),
+            Picture.family_id == current_user.family_id,
+            Picture.status == 1
+        )
+    ).order_by(Picture.create_date.asc()).all()
+
+    # group_id でグルーピング
+    groups_dict = {}
+    for picture, user_name in pictures_with_users:
+        if picture.group_id not in groups_dict:
+            groups_dict[picture.group_id] = []
+        groups_dict[picture.group_id].append(
+            build_picture_response_data(picture, user_name, signed_urls=True)
+        )
+
+    # ページネーション順を維持してレスポンス構築
+    groups = []
+    for gid in group_ids:
+        if gid in groups_dict:
+            groups.append(PictureGroupResponse(
+                group_id=gid,
+                pictures=groups_dict[gid]
+            ))
+
+    has_more = (offset + limit) < total
+
+    return PictureGroupListResponse(
+        groups=groups,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=has_more
+    )
+
+
+@router.get("/pictures/groups/{group_id}", response_model=PictureGroupResponse)
+def get_picture_group_detail(
+    group_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    グループ詳細取得API
+
+    指定されたgroup_idの写真グループ内の全写真を返す。
+    家族スコープでのアクセス制御あり。
+    """
+
+    pictures_with_users = db.query(Picture, User.user_name).outerjoin(
+        User, Picture.uploaded_by == User.id
+    ).filter(
+        and_(
+            Picture.group_id == group_id,
+            Picture.family_id == current_user.family_id,
+            Picture.status == 1
+        )
+    ).order_by(Picture.create_date.asc()).all()
+
+    if not pictures_with_users:
+        raise HTTPException(status_code=404, detail="Photo group not found")
+
+    picture_responses = [
+        build_picture_response_data(p, uname, signed_urls=True)
+        for p, uname in pictures_with_users
+    ]
+
+    return PictureGroupResponse(
+        group_id=group_id,
+        pictures=picture_responses
+    )
+
+
 @router.get("/pictures/{picture_id}", response_model=PictureResponse)
 def get_picture_detail(
     picture_id: int,
@@ -285,43 +473,21 @@ def get_picture_detail(
     return build_picture_response_data(picture, user_name, signed_urls=True)
 
 
-@router.post("/pictures", response_model=PictureResponse, status_code=201)
-async def upload_picture(
-    file: UploadFile = File(...),
-    title: Optional[str] = Form(None),
-    description: Optional[str] = Form(None),
-    category_id: Optional[int] = Form(None),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    storage_config: StorageConfig = Depends(get_storage_config)
-):
+async def process_and_save_image(
+    file: UploadFile,
+    storage_config: StorageConfig
+) -> dict:
     """
-    画像アップロードAPI
-
-    multipart/form-dataで画像ファイルとメタデータを受信し、
-    EXIF除去、サムネイル生成、ファイル検証を実行して保存する。
-
-    Args:
-        file: アップロードする画像ファイル
-        title: 写真のタイトル（任意）
-        description: 写真の説明（任意）
-        category_id: カテゴリID（任意）
-        db: データベースセッション
-        current_user: 認証済みユーザー情報
-        storage_config: ストレージ設定
+    単一画像ファイルのバリデーション、処理、保存を行うヘルパー関数。
 
     Returns:
-        PictureResponse: 保存された写真情報
+        dict: photo_path, thumb_path, relative_photo_path, relative_thumb_path,
+              file_size, detected_mime, width, height, taken_date
 
     Raises:
-        HTTPException:
-            - 400: ファイル検証エラー、カテゴリエラー等
-            - 500: ファイル保存エラー、データベースエラー
+        HTTPException: バリデーションエラーまたは保存エラー
     """
-
     # 1. ファイル基本検証
-    # HEIC/HEIFファイルはブラウザでContent-Typeが正しく設定されない場合があるため
-    # ファイル拡張子もチェックして補完する
     content_type = file.content_type or ""
     file_extension = Path(file.filename).suffix.lower() if file.filename else ""
 
@@ -353,35 +519,11 @@ async def upload_picture(
                    f"Maximum allowed: {max_size_mb:.1f}MB"
         )
 
-    # 2. カテゴリ検証（指定された場合）
-    if category_id is not None:
-        category = db.query(Category).filter(
-            and_(
-                Category.id == category_id,
-                Category.family_id == current_user.family_id,
-                Category.status == 1
-            )
-        ).first()
-
-        if not category:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Category with ID {category_id} not found or not accessible"
-            )
-
-    # 3. 画像検証・メタデータ抽出
+    # 2. 画像検証・メタデータ抽出
     try:
-        # PIL で画像を開いて検証
         image = Image.open(BytesIO(file_content))
-
-        # 元のフォーマットを保存（exif_transpose後はNoneになるため）
         original_format = image.format
-
-        # EXIF Orientationに基づいて画像を正しい向きに回転
-        # iPhoneなどで撮影した写真の回転問題を解決
         image = ImageOps.exif_transpose(image)
-
-        # 画像サイズ取得（回転補正後のサイズ）
         width, height = image.size
 
         # 大きい画像はリサイズ（長辺2048px以下に）
@@ -398,7 +540,6 @@ async def upload_picture(
             pil_format = "PNG"
             detected_mime = "image/png"
         else:
-            # MIME型の再確認（PIL の format から）
             if pil_format:
                 format_to_mime = {
                     'JPEG': 'image/jpeg',
@@ -424,6 +565,8 @@ async def upload_picture(
                         except ValueError:
                             logger.warning(f"Invalid EXIF DateTime format: {value}")
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Image validation failed: {e}")
         raise HTTPException(
@@ -431,14 +574,12 @@ async def upload_picture(
             detail="Invalid image file or unsupported format"
         )
 
-    # 4. ユニークファイル名生成
+    # 3. ユニークファイル名生成
     file_extension = Path(file.filename).suffix.lower()
 
-    # HEIC画像の場合は強制的にPNG拡張子を使用
     if pil_format == "PNG" and (file_extension == '.heic' or file_extension == '.heif' or detected_mime == 'image/png'):
         file_extension = '.png'
     elif not file_extension:
-        # MIME型から拡張子を推定
         mime_to_ext = {
             'image/jpeg': '.jpg',
             'image/png': '.png',
@@ -450,17 +591,13 @@ async def upload_picture(
     unique_filename = f"{uuid.uuid4().hex}{file_extension}"
     thumb_filename = f"thumb_{unique_filename}"
 
-    # ファイルパス生成
     photo_path = storage_config.get_photo_file_path(unique_filename)
     thumb_path = storage_config.get_thumbnail_file_path(thumb_filename)
 
-    # 5. ファイル保存処理
+    # 4. ファイル保存処理
     try:
-        # EXIF除去処理
         if image.mode in ('RGBA', 'LA', 'P'):
-            # アルファチャンネルがある場合は適切に変換
             if detected_mime == 'image/jpeg':
-                # JPEGはアルファチャンネルをサポートしないため、白背景で合成
                 background = Image.new('RGB', image.size, (255, 255, 255))
                 if image.mode == 'P':
                     image = image.convert('RGBA')
@@ -469,14 +606,12 @@ async def upload_picture(
             else:
                 image = image.convert('RGB')
 
-        # オリジナル画像保存（EXIF除去）
         with open(photo_path, 'wb') as f:
             if pil_format == 'JPEG':
                 image.save(f, format=pil_format, quality=95)
             else:
                 image.save(f, format=pil_format)
 
-        # サムネイル生成・保存
         thumbnail = image.copy()
         thumbnail.thumbnail((300, 300), Image.Resampling.LANCZOS)
 
@@ -490,7 +625,6 @@ async def upload_picture(
 
     except Exception as e:
         logger.error(f"File save failed: {e}")
-        # 保存済みファイルがあれば削除
         for path in [photo_path, thumb_path]:
             if path.exists():
                 try:
@@ -499,41 +633,145 @@ async def upload_picture(
                     pass
         raise HTTPException(status_code=500, detail="Failed to save image files")
 
-    # 6. データベース保存
-    try:
-        # 相対パスで保存（ストレージルートからの相対パス）
-        relative_photo_path = str(Path("photos") / unique_filename)
-        relative_thumb_path = str(Path("thumbnails") / thumb_filename)
+    relative_photo_path = str(Path("photos") / unique_filename)
+    relative_thumb_path = str(Path("thumbnails") / thumb_filename)
 
-        picture = Picture(
-            family_id=current_user.family_id,
-            uploaded_by=current_user.id,
-            title=title.strip() if title and title.strip() else None,
-            description=description.strip() if description and description.strip() else None,
-            file_path=relative_photo_path,
-            thumbnail_path=relative_thumb_path,
-            file_size=file_size,
-            mime_type=detected_mime,
-            width=width,
-            height=height,
-            taken_date=taken_date,
-            category_id=category_id,
-            status=1
+    return {
+        "photo_path": photo_path,
+        "thumb_path": thumb_path,
+        "relative_photo_path": relative_photo_path,
+        "relative_thumb_path": relative_thumb_path,
+        "file_size": file_size,
+        "detected_mime": detected_mime,
+        "width": width,
+        "height": height,
+        "taken_date": taken_date,
+    }
+
+
+MAX_FILES_PER_UPLOAD = 5
+
+
+@router.post("/pictures", response_model=PictureUploadResponse, status_code=201)
+async def upload_picture(
+    files: List[UploadFile] = File(...),
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    category_id: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    storage_config: StorageConfig = Depends(get_storage_config)
+):
+    """
+    画像アップロードAPI（最大5枚同時投稿対応）
+
+    multipart/form-dataで画像ファイル（1〜5枚）とメタデータを受信し、
+    EXIF除去、サムネイル生成、ファイル検証を実行して保存する。
+    同時投稿された写真は同じgroup_idでグループ化される。
+
+    Args:
+        files: アップロードする画像ファイル（1〜5枚）
+        title: 写真のタイトル（任意、グループ共通）
+        description: 写真の説明（任意、グループ共通）
+        category_id: カテゴリID（任意、グループ共通）
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+        storage_config: ストレージ設定
+
+    Returns:
+        PictureUploadResponse: 保存された写真グループ情報
+
+    Raises:
+        HTTPException:
+            - 400: ファイル検証エラー、カテゴリエラー、ファイル数超過等
+            - 500: ファイル保存エラー、データベースエラー
+    """
+
+    # 1. ファイル数バリデーション
+    if len(files) < 1:
+        raise HTTPException(status_code=400, detail="At least one file is required")
+    if len(files) > MAX_FILES_PER_UPLOAD:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Too many files. Maximum {MAX_FILES_PER_UPLOAD} files per upload"
         )
 
-        db.add(picture)
-        db.commit()
-        db.refresh(picture)
+    # 2. カテゴリ検証（指定された場合）
+    if category_id is not None:
+        category = db.query(Category).filter(
+            and_(
+                Category.id == category_id,
+                Category.family_id == current_user.family_id,
+                Category.status == 1
+            )
+        ).first()
 
-        logger.info(f"Picture saved to database: ID={picture.id}, User={current_user.id}")
-        return build_picture_response_data(picture, current_user.user_name, signed_urls=False)
+        if not category:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Category with ID {category_id} not found or not accessible"
+            )
+
+    # 3. グループID生成
+    group_id = str(uuid.uuid4())
+
+    # 4. ファイル順次処理（Raspberry Piのメモリ節約のため）
+    processed_files = []
+    saved_file_paths = []
+
+    try:
+        for file in files:
+            result = await process_and_save_image(file, storage_config)
+            processed_files.append(result)
+            saved_file_paths.extend([result["photo_path"], result["thumb_path"]])
+    except HTTPException:
+        # 失敗時: 保存済みファイルをクリーンアップ
+        for path in saved_file_paths:
+            if path.exists():
+                try:
+                    path.unlink()
+                except Exception:
+                    pass
+        raise
+
+    # 5. データベース保存（1トランザクション）
+    pictures = []
+    try:
+        clean_title = title.strip() if title and title.strip() else None
+        clean_description = description.strip() if description and description.strip() else None
+
+        for result in processed_files:
+            picture = Picture(
+                family_id=current_user.family_id,
+                uploaded_by=current_user.id,
+                group_id=group_id,
+                title=clean_title,
+                description=clean_description,
+                file_path=result["relative_photo_path"],
+                thumbnail_path=result["relative_thumb_path"],
+                file_size=result["file_size"],
+                mime_type=result["detected_mime"],
+                width=result["width"],
+                height=result["height"],
+                taken_date=result["taken_date"],
+                category_id=category_id,
+                status=1
+            )
+            db.add(picture)
+            pictures.append(picture)
+
+        db.commit()
+        for p in pictures:
+            db.refresh(p)
+
+        logger.info(f"Pictures saved to database: count={len(pictures)}, group_id={group_id}, User={current_user.id}")
 
     except Exception as e:
         logger.error(f"Database save failed: {e}")
         db.rollback()
 
-        # 保存済みファイルを削除
-        for path in [photo_path, thumb_path]:
+        # 保存済みファイルを全てクリーンアップ
+        for path in saved_file_paths:
             if path.exists():
                 try:
                     path.unlink()
@@ -542,6 +780,17 @@ async def upload_picture(
                     logger.error(f"Failed to cleanup file {path}: {cleanup_error}")
 
         raise HTTPException(status_code=500, detail="Failed to save picture information")
+
+    # 6. レスポンス生成
+    picture_responses = [
+        build_picture_response_data(p, current_user.user_name, signed_urls=False)
+        for p in pictures
+    ]
+
+    return PictureUploadResponse(
+        group_id=group_id,
+        pictures=picture_responses
+    )
 
 
 @router.patch("/pictures/{picture_id}", response_model=PictureResponse)

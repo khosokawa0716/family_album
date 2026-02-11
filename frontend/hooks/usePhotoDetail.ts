@@ -5,10 +5,11 @@ import { commentService } from "@/services/comments";
 import { PictureResponse } from "@/types/pictures";
 import { CommentResponse } from "@/types/comments";
 
-export const usePhotoDetail = (pictureId: number) => {
-  console.log("usePhotoDetail called with pictureId:", pictureId);
+export const usePhotoDetail = (id: string) => {
+  console.log("usePhotoDetail called with id:", id);
   const router = useRouter();
-  const [photo, setPhoto] = useState<PictureResponse | null>(null);
+  const [photos, setPhotos] = useState<PictureResponse[]>([]);
+  const [selectedPhoto, setSelectedPhoto] = useState<PictureResponse | null>(null);
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,64 +22,93 @@ export const usePhotoDetail = (pictureId: number) => {
   const [editingTitle, setEditingTitle] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
 
-  // 写真詳細取得
-  const fetchPhotoDetail = useCallback(async () => {
+  // グループ詳細を取得
+  const fetchGroupDetail = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await pictureService.getPictureDetail(pictureId);
-      setPhoto(response);
+
+      // 数値IDの場合、旧APIで写真を取得してgroup_idにリダイレクト
+      const numericId = Number(id);
+      if (!isNaN(numericId) && numericId > 0) {
+        try {
+          const picture = await pictureService.getPictureDetail(numericId);
+          if (picture.group_id) {
+            router.replace(`/photo/detail/${picture.group_id}`);
+            return;
+          }
+        } catch {
+          // 数値IDとして取得できない場合はgroup_idとして扱う
+        }
+      }
+
+      // group_idとしてグループ詳細を取得
+      const response = await pictureService.getPictureGroupDetail(id);
+      setPhotos(response.pictures);
+      if (response.pictures.length > 0) {
+        setSelectedPhoto(response.pictures[0]);
+      }
     } catch (err) {
-      console.error("Error fetching photo detail:", err);
+      console.error("Error fetching group detail:", err);
       setError("写真の読み込みに失敗しました");
       alert("写真の読み込みに失敗しました");
     } finally {
       setLoading(false);
     }
-  }, [pictureId]);
+  }, [id, router]);
 
-  // コメント一覧取得
+  // コメント一覧取得（選択中の写真に対して）
   const fetchComments = useCallback(async () => {
+    if (!selectedPhoto) return;
     try {
-      const response = await commentService.getPictureComments(pictureId);
+      const response = await commentService.getPictureComments(selectedPhoto.id);
       setComments(response);
     } catch (err) {
       console.error("Error fetching comments:", err);
       alert("コメントの読み込みに失敗しました");
     }
-  }, [pictureId]);
+  }, [selectedPhoto]);
 
   // 初回読み込み
   useEffect(() => {
-    if (!isNaN(pictureId) && pictureId > 0) {
-      fetchPhotoDetail();
+    if (id) {
+      fetchGroupDetail();
+    }
+  }, [id, fetchGroupDetail]);
+
+  // 選択写真変更時にコメント取得
+  useEffect(() => {
+    if (selectedPhoto) {
       fetchComments();
     }
-  }, [pictureId, fetchPhotoDetail, fetchComments]);
+  }, [selectedPhoto, fetchComments]);
 
-  // 写真削除
+  // グループ内全写真を削除
   const handleDeletePhoto = async () => {
-    if (!window.confirm("この写真を削除してもよろしいですか？")) {
+    if (!window.confirm("このグループの写真をすべて削除してもよろしいですか？")) {
       return;
     }
 
     try {
-      await pictureService.deletePicture(pictureId);
+      for (const photo of photos) {
+        await pictureService.deletePicture(photo.id);
+      }
       alert("写真を削除しました");
       router.push("/photo/list");
     } catch (err) {
-      console.error("Error deleting photo:", err);
+      console.error("Error deleting photos:", err);
       alert("写真の削除に失敗しました");
     }
   };
 
-  // 写真ダウンロード
+  // 選択中の写真をダウンロード
   const handleDownloadPhoto = async () => {
+    if (!selectedPhoto) return;
     try {
-      const blob = await pictureService.downloadPicture(pictureId);
+      const blob = await pictureService.downloadPicture(selectedPhoto.id);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = photo?.title || `photo_${pictureId}`;
+      a.download = selectedPhoto.title || `photo_${selectedPhoto.id}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -91,13 +121,13 @@ export const usePhotoDetail = (pictureId: number) => {
 
   // コメント投稿
   const handlePostComment = async () => {
-    if (!commentContent.trim()) {
+    if (!commentContent.trim() || !selectedPhoto) {
       alert("コメントを入力してください");
       return;
     }
 
     try {
-      await commentService.createComment(pictureId, { content: commentContent });
+      await commentService.createComment(selectedPhoto.id, { content: commentContent });
       setCommentContent("");
       await fetchComments();
     } catch (err) {
@@ -106,19 +136,16 @@ export const usePhotoDetail = (pictureId: number) => {
     }
   };
 
-  // コメント編集開始
   const startEditComment = (comment: CommentResponse) => {
     setEditingCommentId(comment.id);
     setEditingContent(comment.content);
   };
 
-  // コメント編集キャンセル
   const cancelEditComment = () => {
     setEditingCommentId(null);
     setEditingContent("");
   };
 
-  // コメント編集保存
   const handleUpdateComment = async (commentId: number) => {
     if (!editingContent.trim()) {
       alert("コメントを入力してください");
@@ -136,7 +163,6 @@ export const usePhotoDetail = (pictureId: number) => {
     }
   };
 
-  // コメント削除
   const handleDeleteComment = async (commentId: number) => {
     if (!window.confirm("このコメントを削除してもよろしいですか？")) {
       return;
@@ -151,31 +177,33 @@ export const usePhotoDetail = (pictureId: number) => {
     }
   };
 
-  // 写真編集開始
+  // 写真編集開始（グループ共通のtitle/description）
   const startEditPhoto = () => {
-    if (photo) {
-      setEditingTitle(photo.title || "");
-      setEditingDescription(photo.description || "");
+    const first = photos[0];
+    if (first) {
+      setEditingTitle(first.title || "");
+      setEditingDescription(first.description || "");
       setIsEditingPhoto(true);
     }
   };
 
-  // 写真編集キャンセル
   const cancelEditPhoto = () => {
     setIsEditingPhoto(false);
     setEditingTitle("");
     setEditingDescription("");
   };
 
-  // 写真編集保存
+  // グループ内全写真のtitle/descriptionを更新
   const handleUpdatePhoto = async () => {
     try {
-      await pictureService.updatePicture(pictureId, {
-        title: editingTitle || null,
-        description: editingDescription || null,
-      });
+      for (const photo of photos) {
+        await pictureService.updatePicture(photo.id, {
+          title: editingTitle || null,
+          description: editingDescription || null,
+        });
+      }
       setIsEditingPhoto(false);
-      await fetchPhotoDetail();
+      await fetchGroupDetail();
     } catch (err) {
       console.error("Error updating photo:", err);
       alert("写真情報の更新に失敗しました");
@@ -183,7 +211,9 @@ export const usePhotoDetail = (pictureId: number) => {
   };
 
   return {
-    photo,
+    photos,
+    selectedPhoto,
+    setSelectedPhoto,
     comments,
     loading,
     error,

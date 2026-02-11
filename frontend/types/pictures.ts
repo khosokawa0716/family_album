@@ -13,6 +13,7 @@ export interface PictureResponse {
   id: number;
   family_id: number;
   uploaded_by: number;
+  group_id: string;
   user?: {
     id: number;
     user_name: string;
@@ -54,4 +55,22 @@ export interface PictureRestoreResponse {
 export interface PictureUpdateRequest {
   title?: string | null;
   description?: string | null;
+}
+
+export interface PictureUploadResponse {
+  group_id: string;
+  pictures: PictureResponse[];
+}
+
+export interface PictureGroupResponse {
+  group_id: string;
+  pictures: PictureResponse[];
+}
+
+export interface PictureGroupListResponse {
+  groups: PictureGroupResponse[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
 }

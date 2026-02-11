@@ -4,9 +4,31 @@ import { pictureService } from "@/services/pictures";
 import { categoryService } from "@/services/categories";
 import { CategoryResponse } from "@/types/categories";
 
+const MAX_FILES = 5;
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+];
+
+const isHEICFile = (file: File): boolean => {
+  const ext = file.name.toLowerCase().split(".").pop();
+  return ext === "heic" || ext === "heif";
+};
+
+const isAllowedFile = (file: File): boolean => {
+  if (isHEICFile(file)) return true;
+  return ALLOWED_TYPES.includes(file.type);
+};
+
 export const usePhotoUpload = () => {
   const router = useRouter();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -27,42 +49,44 @@ export const usePhotoUpload = () => {
   }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // サーバー側で自動リサイズされるためサイズ制限は緩和
-      // ただし極端に大きいファイル（50MB超）は除外
-      if (file.size > 50 * 1024 * 1024) {
-        alert("ファイルサイズが大きすぎます（50MB以下にしてください）");
-        return;
-      }
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-      // Allowed file types - HEICファイルのtype判定を緩和
-      const allowedTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/gif",
-        "image/webp",
-        "image/heic",
-        "image/heif",
-      ];
-      const fileExtension = file.name.toLowerCase().split(".").pop();
-      const isHEIC = fileExtension === "heic" || fileExtension === "heif";
+    const newFiles = Array.from(files);
+    const totalFiles = selectedFiles.length + newFiles.length;
 
-      // HEICファイルの場合はfile.typeが空でも許可
-      if (!isHEIC && !allowedTypes.includes(file.type)) {
-        alert("Allowed file types: JPEG, PNG, GIF, WEBP, HEIC, HEIF");
-        return;
-      }
-
-      setSelectedFile(file);
+    if (totalFiles > MAX_FILES) {
+      alert(`最大${MAX_FILES}枚まで選択できます`);
+      event.target.value = "";
+      return;
     }
+
+    for (const file of newFiles) {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`「${file.name}」のファイルサイズが大きすぎます（50MB以下にしてください）`);
+        event.target.value = "";
+        return;
+      }
+      if (!isAllowedFile(file)) {
+        alert(`「${file.name}」は対応していないファイル形式です（JPEG, PNG, GIF, WEBP, HEIC, HEIF）`);
+        event.target.value = "";
+        return;
+      }
+    }
+
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
+    event.target.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!selectedFile || !selectedCategory) {
-      alert("Please select a file and a category");
+    if (selectedFiles.length === 0 || !selectedCategory) {
+      alert("ファイルとカテゴリを選択してください");
       return;
     }
 
@@ -70,7 +94,9 @@ export const usePhotoUpload = () => {
 
     try {
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      for (const file of selectedFiles) {
+        formData.append("files", file);
+      }
       formData.append("category_id", selectedCategory);
 
       if (title.trim()) {
@@ -81,20 +107,19 @@ export const usePhotoUpload = () => {
         formData.append("description", description.trim());
       }
 
-      await pictureService.uploadPicture(formData);
+      await pictureService.uploadPictures(formData);
 
-      // Redirect to photo list
       router.push("/photo/list");
     } catch (error) {
       console.error("Upload failed:", error);
-      alert("Upload failed");
+      alert("アップロードに失敗しました");
     } finally {
       setIsUploading(false);
     }
   };
 
   return {
-    selectedFile,
+    selectedFiles,
     selectedCategory,
     title,
     description,
@@ -104,6 +129,7 @@ export const usePhotoUpload = () => {
     setTitle,
     setDescription,
     handleFileChange,
+    removeFile,
     handleSubmit,
   };
 };

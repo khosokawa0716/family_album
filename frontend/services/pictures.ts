@@ -5,6 +5,9 @@ import {
   PictureResponse,
   PictureRestoreResponse,
   PictureUpdateRequest,
+  PictureUploadResponse,
+  PictureGroupListResponse,
+  PictureGroupResponse,
 } from "@/types/pictures";
 
 export const pictureService = {
@@ -31,8 +34,8 @@ export const pictureService = {
     return apiClient.get<PictureListResponse>("/pictures/deleted");
   },
 
-  async uploadPicture(formData: FormData): Promise<PictureResponse> {
-    return apiClient.postFormData<PictureResponse>("/pictures", formData);
+  async uploadPictures(formData: FormData): Promise<PictureUploadResponse> {
+    return apiClient.postFormData<PictureUploadResponse>("/pictures", formData);
   },
 
   async deletePicture(pictureId: number): Promise<void> {
@@ -49,5 +52,21 @@ export const pictureService = {
 
   async updatePicture(pictureId: number, data: PictureUpdateRequest): Promise<PictureResponse> {
     return apiClient.patch<PictureResponse>(`/pictures/${pictureId}`, data);
+  },
+
+  async getPictureGroups(params: PictureRequest): Promise<PictureGroupListResponse> {
+    const queryParams: Record<string, string> = {};
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams[key] = String(value);
+      }
+    });
+    const query = new URLSearchParams(queryParams).toString();
+    const endpoint = query ? `/pictures/groups?${query}` : "/pictures/groups";
+    return apiClient.get<PictureGroupListResponse>(endpoint);
+  },
+
+  async getPictureGroupDetail(groupId: string): Promise<PictureGroupResponse> {
+    return apiClient.get<PictureGroupResponse>(`/pictures/groups/${groupId}`);
   },
 };

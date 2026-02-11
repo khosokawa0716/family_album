@@ -1,19 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import { usePhotoList } from "@/hooks/usePhotoList";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { formatDate } from "@/utils/date";
 import PageHeader from "@/components/PageHeader";
 import { AuthGuard } from "@/components/AuthGuard";
+import { PictureGroupResponse } from "@/types/pictures";
 
 /**
- * 写真一覧ページ（無限スクロール対応）
- *
- * このコンポーネントは以下の機能を提供します：
- * - 写真の一覧表示（グリッドレイアウト）
- * - カテゴリによるフィルタリング
- * - 無限スクロールによる自動読み込み
- * - 手動での追加読み込み（オプション）
+ * 写真一覧ページ（グループ表示・無限スクロール対応）
  */
 export default function PhotoList() {
   const router = useRouter();
@@ -22,37 +17,31 @@ export default function PhotoList() {
   const isNavigatingToDetailRef = useRef(false);
   const hasRestoredScrollRef = useRef(false);
 
-  // === カスタムフックからデータと関数を取得 ===
   const {
-    photos, // 表示する写真データの配列
-    categories, // 利用可能なカテゴリ一覧
-    loading, // 現在データを読み込み中かどうか
-    hasMore, // まだ読み込めるデータがあるかどうか
-    selectedCategory, // 現在選択されているカテゴリ
-    setSelectedCategory, // カテゴリ選択を変更する関数
-    loadMorePhotos, // 追加の写真を読み込む関数
+    groups,
+    categories,
+    loading,
+    hasMore,
+    selectedCategory,
+    setSelectedCategory,
+    loadMoreGroups,
   } = usePhotoList();
 
-  // === 無限スクロール用の監視要素を設定 ===
-  // この要素が画面に表示されると自動的に次のページが読み込まれます
   const sentinelRef = useInfiniteScroll({
-    hasMore, // まだ読み込めるデータがある場合のみ監視
-    loading, // 読み込み中は重複リクエストを防ぐ
-    onLoadMore: loadMorePhotos, // スクロール時に実行される関数
-    threshold: 200, // 画面下端から200px手前で読み込み開始
+    hasMore,
+    loading,
+    onLoadMore: loadMoreGroups,
+    threshold: 200,
   });
 
   // === スクロール位置の保存・復元 ===
   useEffect(() => {
-    // ページ読み込み時にスクロール位置を復元
     const savedPosition = sessionStorage.getItem(SCROLL_POSITION_KEY);
-    if (savedPosition && photos.length > 0 && !hasRestoredScrollRef.current) {
+    if (savedPosition && groups.length > 0 && !hasRestoredScrollRef.current) {
       isRestoringScrollRef.current = true;
       hasRestoredScrollRef.current = true;
-      // 保存値は1回使ったら破棄し、古い位置の再利用を防ぐ
       sessionStorage.removeItem(SCROLL_POSITION_KEY);
 
-      // 写真データが読み込まれた後に実行
       const timeout = setTimeout(() => {
         window.scrollTo(0, parseInt(savedPosition, 10));
         console.log("スクロール位置を復元:", savedPosition);
@@ -64,10 +53,9 @@ export default function PhotoList() {
         isRestoringScrollRef.current = false;
       };
     }
-  }, [photos.length]);
+  }, [groups.length]);
 
   useEffect(() => {
-    // スクロール位置を定期的に保存
     const handleScroll = () => {
       if (isRestoringScrollRef.current || isNavigatingToDetailRef.current) {
         return;
@@ -80,14 +68,12 @@ export default function PhotoList() {
   }, []);
 
   // === 詳細ページへの移動処理 ===
-  const handlePhotoClick = (photoId: number) => {
-    // 現在のスクロール位置を保存してから詳細ページへ移動
+  const handleGroupClick = (groupId: string) => {
     const currentScrollY = window.scrollY.toString();
     sessionStorage.setItem(SCROLL_POSITION_KEY, currentScrollY);
     isNavigatingToDetailRef.current = true;
     console.log("詳細ページへ移動、スクロール位置を保存:", window.scrollY);
-    void router.push(`/photo/detail/${photoId}`, undefined, { scroll: false }).finally(() => {
-      // 遷移失敗時に保存停止状態のまま残らないようにする
+    void router.push(`/photo/detail/${groupId}`, undefined, { scroll: false }).finally(() => {
       isNavigatingToDetailRef.current = false;
     });
   };
@@ -95,31 +81,24 @@ export default function PhotoList() {
   // === カテゴリ変更時の処理 ===
   const handleCategoryChange = (category: string) => {
     console.log("カテゴリ変更:", category);
-    // カテゴリ変更時はスクロール位置をリセット
     sessionStorage.removeItem(SCROLL_POSITION_KEY);
     setSelectedCategory(category);
     window.scrollTo(0, 0);
   };
 
+  const totalPhotos = groups.reduce((sum, g) => sum + g.pictures.length, 0);
+
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-50">
-        {/* === ページヘッダー === */}
-        <PageHeader title="Photo List">
-          {/* 将来的にボタンなどを追加予定 */}
-          {/* <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-            Add Photo
-          </button> */}
-        </PageHeader>
+        <PageHeader title="Photo List" />
 
         {/* === フィルター機能 === */}
         <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-6">
           <div className="bg-white rounded-lg shadow p-3 sm:p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* カテゴリフィルター（タブスタイル） */}
               <div>
                 <div role="radiogroup" aria-label="カテゴリを選択" className="flex flex-wrap gap-2">
-                  {/* 「すべて」タブ */}
                   <button
                     type="button"
                     role="radio"
@@ -137,7 +116,6 @@ export default function PhotoList() {
                   >
                     すべて
                   </button>
-                  {/* 各カテゴリタブ */}
                   {categories.map((category) => (
                     <button
                       key={category.id}
@@ -160,72 +138,29 @@ export default function PhotoList() {
                   ))}
                 </div>
               </div>
-
-              {/* 日付フィルター（将来実装予定のためコメントアウト） */}
-              {/* <div>
-                <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
-                  Date
-                </label>
-                <input
-                  type="month"
-                  id="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div> */}
             </div>
           </div>
         </div>
 
         {/* === 写真グリッド === */}
         <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 pb-6 sm:pb-12">
-          {/* グリッドレイアウト：画面サイズに応じて列数を調整 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-            {photos.map((photo) => (
-              <div
-                key={photo.id}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => handlePhotoClick(photo.id)}
-              >
-                {/* 写真のサムネイル画像 */}
-                <img
-                  src={photo.thumbnail_path || ""}
-                  alt={photo.title || "Photo"}
-                  className="w-full h-48 object-cover rounded-t-lg"
-                  onError={() => {
-                    console.error("画像読み込みエラー:", photo.id);
-                    // エラー時の代替画像設定などを将来実装予定
-                  }}
-                />
-
-                {/* 写真の情報 */}
-                <div className="p-3 sm:p-4">
-                  <h3 className="text-lg font-medium text-gray-900">{photo.title || "無題"}</h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    投稿者: {photo.user?.user_name || "不明"}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {photo.description || "説明がありません"}
-                  </p>
-                  {/* 投稿日の表示 */}
-                  <span className="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full mt-2">
-                    {formatDate(photo.create_date)}
-                  </span>
-                </div>
-              </div>
+            {groups.map((group) => (
+              <GroupCard
+                key={group.group_id}
+                group={group}
+                onClick={() => handleGroupClick(group.group_id)}
+              />
             ))}
           </div>
 
           {/* === 無限スクロール用の監視要素 === */}
-          {/* この要素が画面に表示されると自動的に次のページが読み込まれます */}
           <div ref={sentinelRef} className="h-10" />
 
           {/* === ローディング表示 === */}
           {loading && (
             <div className="text-center py-8">
               <div className="inline-flex items-center">
-                {/* 回転するスピナーアイコン */}
                 <svg
                   className="animate-spin h-5 w-5 mr-3 text-indigo-600"
                   viewBox="0 0 24 24"
@@ -247,14 +182,14 @@ export default function PhotoList() {
           )}
 
           {/* === 全件読み込み完了メッセージ === */}
-          {!hasMore && photos.length > 0 && (
+          {!hasMore && groups.length > 0 && (
             <div className="text-center py-8">
-              <p className="text-gray-500">すべての写真を読み込みました ({photos.length}件)</p>
+              <p className="text-gray-500">すべての写真を読み込みました ({totalPhotos}件)</p>
             </div>
           )}
 
           {/* === データが存在しない場合のメッセージ === */}
-          {!loading && photos.length === 0 && (
+          {!loading && groups.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">写真が見つかりませんでした</p>
               <p className="text-gray-400 text-sm mt-2">
@@ -263,14 +198,13 @@ export default function PhotoList() {
             </div>
           )}
 
-          {/* === 手動読み込みボタン（オプション） === */}
-          {/* 無限スクロールが動作しない環境やユーザビリティ向上のための代替手段 */}
-          {hasMore && !loading && photos.length > 0 && (
+          {/* === 手動読み込みボタン === */}
+          {hasMore && !loading && groups.length > 0 && (
             <div className="text-center mt-8">
               <button
                 onClick={() => {
                   console.log("手動で追加読み込みを実行");
-                  loadMorePhotos();
+                  loadMoreGroups();
                 }}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium transition-colors"
               >
@@ -281,5 +215,123 @@ export default function PhotoList() {
         </div>
       </div>
     </AuthGuard>
+  );
+}
+
+/**
+ * グループカードコンポーネント
+ * 1枚: 通常サムネイル表示
+ * 2枚以上: CSS scroll-snapスライダー + ドットインジケーター
+ */
+function GroupCard({
+  group,
+  onClick,
+}: {
+  group: PictureGroupResponse;
+  onClick: () => void;
+}) {
+  const firstPhoto = group.pictures[0];
+  const isMultiple = group.pictures.length > 1;
+
+  if (!isMultiple) {
+    // 1枚の場合: 従来どおりのカード
+    return (
+      <div
+        className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
+        onClick={onClick}
+      >
+        <img
+          src={firstPhoto.thumbnail_path || ""}
+          alt={firstPhoto.title || "Photo"}
+          className="w-full h-48 object-cover rounded-t-lg"
+        />
+        <div className="p-3 sm:p-4">
+          <h3 className="text-lg font-medium text-gray-900">{firstPhoto.title || "無題"}</h3>
+          <p className="text-xs text-gray-500 mt-1">
+            投稿者: {firstPhoto.user?.user_name || "不明"}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            {firstPhoto.description || "説明がありません"}
+          </p>
+          <span className="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full mt-2">
+            {formatDate(firstPhoto.create_date)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // 2枚以上: スライダーカード
+  return (
+    <div
+      className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={onClick}
+    >
+      <ImageSlider group={group} />
+      <div className="p-3 sm:p-4">
+        <h3 className="text-lg font-medium text-gray-900">{firstPhoto.title || "無題"}</h3>
+        <p className="text-xs text-gray-500 mt-1">
+          投稿者: {firstPhoto.user?.user_name || "不明"}
+        </p>
+        <p className="text-sm text-gray-500 mt-1">
+          {firstPhoto.description || "説明がありません"}
+        </p>
+        <span className="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full mt-2">
+          {formatDate(firstPhoto.create_date)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * CSS scroll-snapベースの画像スライダー
+ */
+function ImageSlider({ group }: { group: PictureGroupResponse }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const index = Math.round(el.scrollLeft / el.clientWidth);
+    setActiveIndex(index);
+  }, []);
+
+  return (
+    <div className="relative">
+      {/* スライダー本体 */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide rounded-t-lg"
+      >
+        {group.pictures.map((photo) => (
+          <img
+            key={photo.id}
+            src={photo.thumbnail_path || ""}
+            alt={photo.title || "Photo"}
+            className="w-full h-48 object-cover flex-shrink-0 snap-center"
+          />
+        ))}
+      </div>
+
+      {/* 枚数バッジ */}
+      <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+        {group.pictures.length}枚
+      </div>
+
+      {/* ドットインジケーター */}
+      <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
+        {group.pictures.map((photo, i) => (
+          <span
+            key={photo.id}
+            className={`w-1.5 h-1.5 rounded-full transition-colors ${
+              i === activeIndex ? "bg-white" : "bg-white/50"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

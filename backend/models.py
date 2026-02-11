@@ -51,6 +51,7 @@ class Picture(Base):
     id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
     family_id = Column(INTEGER(unsigned=True), nullable=False)
     uploaded_by = Column(INTEGER(unsigned=True), ForeignKey('users.id'), nullable=False)
+    group_id = Column(String(36), nullable=False)
     title = Column(String(255))
     description = Column(Text)
     file_path = Column(String(500), nullable=False)

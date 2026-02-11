@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* スクロールバー非表示ユーティリティ */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* グローバルCSSはここに記述 */
 body {
   margin: 0;

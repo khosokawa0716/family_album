@@ -7,14 +7,17 @@ import { formatDate } from "@/utils/date";
 import PageHeader from "@/components/PageHeader";
 import PhotoModal from "@/components/PhotoModal";
 import { AuthGuard } from "@/components/AuthGuard";
+import { PictureResponse } from "@/types/pictures";
 
 export default function PhotoDetail() {
   const router = useRouter();
   const { id } = router.query;
-  const pictureId = Number(id);
+  const groupId = typeof id === "string" ? id : "";
 
   const {
-    photo,
+    photos,
+    selectedPhoto,
+    setSelectedPhoto,
     comments,
     loading,
     commentContent,
@@ -29,7 +32,6 @@ export default function PhotoDetail() {
     cancelEditComment,
     handleUpdateComment,
     handleDeleteComment,
-    // 写真編集
     isEditingPhoto,
     editingTitle,
     setEditingTitle,
@@ -38,12 +40,12 @@ export default function PhotoDetail() {
     startEditPhoto,
     cancelEditPhoto,
     handleUpdatePhoto,
-  } = usePhotoDetail(pictureId);
+  } = usePhotoDetail(groupId);
 
   const { user } = useAuth();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalPhoto, setModalPhoto] = useState<PictureResponse | null>(null);
 
-  if (!id || isNaN(pictureId)) {
+  if (!id) {
     return (
       <AuthGuard>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -63,7 +65,7 @@ export default function PhotoDetail() {
     );
   }
 
-  if (!photo) {
+  if (photos.length === 0) {
     return (
       <AuthGuard>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -73,14 +75,15 @@ export default function PhotoDetail() {
     );
   }
 
+  const firstPhoto = photos[0];
+  const isMultiple = photos.length > 1;
+
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-50">
         <PageHeader title="Detail">
           <button
             onClick={() => {
-              // 戻るボタンクリック時に写真一覧ページのスクロール位置記憶用フラグをクリア
-              // （新しく詳細ページから戻った場合は復元したいため）
               router.push("/photo/list", undefined, { scroll: false });
             }}
             className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -92,16 +95,55 @@ export default function PhotoDetail() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* 写真表示エリア */}
           <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="mb-4">
-              <img
-                src={photo.file_path}
-                alt={photo.title || "Photo"}
-                className="w-full max-h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => setIsModalOpen(true)}
-              />
-            </div>
+            {isMultiple ? (
+              /* 複数枚: grid-cols-2グリッド表示 */
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {photos.map((photo) => (
+                  <div
+                    key={photo.id}
+                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${
+                      selectedPhoto?.id === photo.id
+                        ? "border-indigo-500"
+                        : "border-transparent hover:border-gray-300"
+                    }`}
+                    onClick={() => setSelectedPhoto(photo)}
+                  >
+                    <img
+                      src={photo.file_path}
+                      alt={photo.title || "Photo"}
+                      className="w-full h-48 object-cover hover:opacity-90 transition-opacity"
+                    />
+                    {selectedPhoto?.id === photo.id && (
+                      <div className="absolute top-1 left-1 bg-indigo-500 text-white text-xs px-1.5 py-0.5 rounded">
+                        選択中
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="absolute bottom-1 right-1 bg-black/50 text-white text-xs px-2 py-1 rounded hover:bg-black/70"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setModalPhoto(photo);
+                      }}
+                    >
+                      拡大
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* 1枚: 従来レイアウト */
+              <div className="mb-4">
+                <img
+                  src={firstPhoto.file_path}
+                  alt={firstPhoto.title || "Photo"}
+                  className="w-full max-h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => setModalPhoto(firstPhoto)}
+                />
+              </div>
+            )}
 
-            {/* タイトルと説明 */}
+            {/* タイトルと説明（グループ共通） */}
             {isEditingPhoto ? (
               <div className="mb-4 space-y-3">
                 <div>
@@ -141,14 +183,19 @@ export default function PhotoDetail() {
               </div>
             ) : (
               <div className="mb-4">
-                {photo.title && (
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">{photo.title}</h2>
+                {firstPhoto.title && (
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">{firstPhoto.title}</h2>
                 )}
                 <p className="text-sm text-gray-500 mb-1">
-                  投稿者: {photo.user?.user_name || "不明"}
+                  投稿者: {firstPhoto.user?.user_name || "不明"}
                 </p>
-                {photo.description && <p className="text-gray-600">{photo.description}</p>}
-                {!photo.title && !photo.description && (
+                {isMultiple && (
+                  <p className="text-sm text-gray-500 mb-1">{photos.length}枚の写真</p>
+                )}
+                {firstPhoto.description && (
+                  <p className="text-gray-600">{firstPhoto.description}</p>
+                )}
+                {!firstPhoto.title && !firstPhoto.description && (
                   <p className="text-gray-400 italic">タイトル・説明なし</p>
                 )}
               </div>
@@ -157,7 +204,7 @@ export default function PhotoDetail() {
             {/* 投稿日 */}
             <p className="text-sm text-gray-500 mb-4 inline-flex items-center">
               <Calendar className="h-4 w-4 mr-1" aria-hidden="true" />
-              {formatDate(photo.create_date)}
+              {formatDate(firstPhoto.create_date)}
             </p>
 
             {/* 操作ボタン */}
@@ -166,9 +213,11 @@ export default function PhotoDetail() {
                 onClick={handleDownloadPhoto}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
               >
-                ダウンロード
+                {isMultiple && selectedPhoto
+                  ? "選択中の写真をダウンロード"
+                  : "ダウンロード"}
               </button>
-              {user?.id === photo.uploaded_by && !isEditingPhoto && (
+              {user?.id === firstPhoto.uploaded_by && !isEditingPhoto && (
                 <button
                   onClick={startEditPhoto}
                   className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -191,6 +240,12 @@ export default function PhotoDetail() {
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">コメント一覧</h3>
 
+            {isMultiple && selectedPhoto && (
+              <p className="text-sm text-gray-500 mb-3">
+                写真 #{photos.findIndex((p) => p.id === selectedPhoto.id) + 1} へのコメント
+              </p>
+            )}
+
             {/* コメント一覧 */}
             <div className="space-y-4 mb-6">
               {comments.length === 0 ? (
@@ -199,7 +254,6 @@ export default function PhotoDetail() {
                 comments.map((comment) => (
                   <div key={comment.id} className="border border-gray-200 rounded-lg p-4">
                     {editingCommentId === comment.id ? (
-                      // 編集モード
                       <div>
                         <textarea
                           value={editingContent}
@@ -223,7 +277,6 @@ export default function PhotoDetail() {
                         </div>
                       </div>
                     ) : (
-                      // 表示モード
                       <div>
                         <div className="flex items-start justify-between mb-2">
                           <p className="font-medium text-gray-900">{comment.user_name}</p>
@@ -276,10 +329,10 @@ export default function PhotoDetail() {
 
         {/* 写真拡大モーダル */}
         <PhotoModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          photoUrl={photo.file_path}
-          photoTitle={photo.title}
+          isOpen={!!modalPhoto}
+          onClose={() => setModalPhoto(null)}
+          photoUrl={modalPhoto?.file_path || ""}
+          photoTitle={modalPhoto?.title}
         />
       </div>
     </AuthGuard>

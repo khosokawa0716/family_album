@@ -161,6 +161,7 @@ class PictureResponse(BaseModel):
     id: int
     family_id: int
     uploaded_by: int
+    group_id: str
     title: Optional[str]
     description: Optional[str]
     file_path: str
@@ -218,6 +219,24 @@ class PictureUpdateRequest(BaseModel):
         if v is not None and len(v) > 255:
             raise ValueError('Title must be 255 characters or less')
         return v.strip() if v else v
+
+
+class PictureUploadResponse(BaseModel):
+    group_id: str
+    pictures: list[PictureResponse]
+
+
+class PictureGroupResponse(BaseModel):
+    group_id: str
+    pictures: list[PictureResponse]
+
+
+class PictureGroupListResponse(BaseModel):
+    groups: list[PictureGroupResponse]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
 
 
 class PictureListResponse(BaseModel):
