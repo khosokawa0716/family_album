@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useLogin } from "@/hooks/useLogin";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +7,8 @@ export default function Login() {
   const { login, isLoading, error } = useLogin();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -14,13 +16,17 @@ export default function Login() {
     }
   }, [isAuthenticated, authLoading, router]);
 
+  useEffect(() => {
+    if (!router.isReady) return;
+    const name = String(router.query.name ?? "");
+    const pass = String(router.query.pass ?? "");
+    if (name) setUsername(name);
+    if (pass) setPassword(pass);
+  }, [router.isReady, router.query.name, router.query.pass]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    await login({
-      user_name: String(formData.get("username") ?? ""),
-      password: String(formData.get("password") ?? ""),
-    });
+    await login({ user_name: username, password });
   };
 
   if (authLoading) {
@@ -60,6 +66,8 @@ export default function Login() {
                   type="text"
                   autoComplete="username"
                   required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   placeholder="ユーザー名を入力"
                 />
@@ -77,6 +85,8 @@ export default function Login() {
                   type="password"
                   autoComplete="current-password"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   placeholder="パスワードを入力"
                 />
