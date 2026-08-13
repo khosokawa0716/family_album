@@ -9,6 +9,7 @@ from pillow_heif import register_heif_opener
 import uuid
 import os
 import tempfile
+import mimetypes
 from pathlib import Path
 import logging
 from io import BytesIO
@@ -36,8 +37,9 @@ def build_picture_response_data(picture: Picture, user_name: Optional[str] = Non
     """PictureResponse の共通レスポンス構造を生成する。"""
     if signed_urls:
         filename = os.path.basename(picture.file_path)
+        thumb_filename = os.path.basename(picture.thumbnail_path) if picture.thumbnail_path else f"thumb_{filename}"
         file_path = create_signed_url(filename, "photos", expires_in=1800)
-        thumbnail_path = create_signed_url(f"thumb_{filename}", "thumbnails", expires_in=1800)
+        thumbnail_path = create_signed_url(thumb_filename, "thumbnails", expires_in=1800)
     else:
         file_path = picture.file_path
         thumbnail_path = picture.thumbnail_path
@@ -1361,16 +1363,13 @@ def get_thumbnail_by_filename(
     if not verify_url_signature(filename, "thumbnails", sig, exp):
         raise HTTPException(status_code=403, detail="Invalid or expired signature")
 
-    # サムネイルファイル名から元の写真ファイル名を推定
-    # サムネイルは通常 "thumb_original_filename.ext" の形式
-    original_filename = filename
-    if filename.startswith("thumb_"):
-        original_filename = filename[6:]  # "thumb_" を除去
-
-    # 写真の存在確認（削除済みは除外）
+    # サムネイルファイル名からPictureを特定
+    # thumbnail_pathには実際のサムネイルファイル名が保存されている
+    # （動画はサムネイル用に元ファイルと異なるUUID・拡張子を使うため、
+    #   ファイル名からの推定ではなくthumbnail_pathを直接照合する）
     picture = db.query(Picture).filter(
         and_(
-            Picture.file_path.endswith(original_filename),
+            Picture.thumbnail_path.endswith(filename),
             Picture.status == 1
         )
     ).first()
@@ -1400,10 +1399,14 @@ def get_thumbnail_by_filename(
         raise HTTPException(status_code=500, detail="Failed to read thumbnail file")
 
     try:
+        # サムネイルは常に画像ファイルのため、picture.mime_type（動画の場合はvideo/*）ではなく
+        # サムネイルファイル自体の拡張子からContent-Typeを判定する
+        thumb_media_type = mimetypes.guess_type(str(thumbnail_path))[0] or "image/jpeg"
+
         # FileResponseを返す（サムネイル用の適切なヘッダー設定）
         return FileResponse(
             path=str(thumbnail_path),
-            media_type=picture.mime_type,
+            media_type=thumb_media_type,
             headers={
                 "Content-Length": str(file_size),
                 "Cache-Control": "public, max-age=86400"  # 24時間キャッシュ（サムネイルは長期キャッシュ）
