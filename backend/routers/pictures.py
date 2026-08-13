@@ -160,10 +160,10 @@ def get_pictures(
     total = query.count()
 
     # ソート（撮影日降順、撮影日がない場合は作成日降順）
+    # taken_dateの有無で優先度を分けるのではなく、COALESCEで単一の基準日として
+    # 扱うことで、taken_dateがある投稿とない投稿が実際の新しさ順に混在する
     query = query.order_by(
-        desc(Picture.taken_date.is_(None)),  # taken_dateがNULLの場合は後ろに
-        desc(Picture.taken_date),
-        desc(Picture.create_date)
+        desc(func.coalesce(Picture.taken_date, Picture.create_date))
     )
 
     # ページネーション適用
@@ -342,9 +342,7 @@ def get_picture_groups(
     total = group_query.count()
 
     group_query = group_query.order_by(
-        desc(func.max(Picture.taken_date).is_(None)),
-        desc(func.max(Picture.taken_date)),
-        desc(func.max(Picture.create_date))
+        desc(func.coalesce(func.max(Picture.taken_date), func.max(Picture.create_date)))
     ).offset(offset).limit(limit)
 
     group_rows = group_query.all()
