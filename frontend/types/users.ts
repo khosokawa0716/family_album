@@ -8,6 +8,7 @@ export interface UserCreateRequest {
 
 export interface UserUpdateRequest {
   user_name?: string;
+  nickname?: string | null;
   password?: string;
   email?: string | null;
   type?: number;
@@ -18,6 +19,7 @@ export interface UserUpdateRequest {
 export interface UserResponse {
   id: number;
   user_name: string;
+  nickname: string | null;
   email: string | null;
   type: number;
   family_id: number;

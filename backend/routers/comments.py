@@ -70,6 +70,7 @@ def get_picture_comments(
             user_id=comment.user_id,
             picture_id=comment.picture_id,
             user_name=comment.user.user_name,
+            nickname=comment.user.nickname,
             create_date=comment.create_date,
             update_date=comment.update_date
         )

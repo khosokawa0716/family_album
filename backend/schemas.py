@@ -11,6 +11,7 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     user_name: Optional[str] = None
+    nickname: Optional[str] = None
     password: Optional[str] = None
     email: Optional[str] = None
     type: Optional[int] = None
@@ -23,6 +24,15 @@ class UserUpdate(BaseModel):
         if v is not None and len(v.strip()) == 0:
             raise ValueError('Username cannot be empty')
         return v
+
+    @field_validator('nickname')
+    @classmethod
+    def validate_nickname(cls, v):
+        if v is not None and len(v.strip()) == 0:
+            return None  # 空文字はNoneに変換（未設定として扱う）
+        if v is not None and len(v) > 64:
+            raise ValueError('Nickname must be 64 characters or less')
+        return v.strip() if v is not None else v
 
     @field_validator('password')
     @classmethod
@@ -68,6 +78,7 @@ class UserUpdate(BaseModel):
 class UserResponse(BaseModel):
     id: int
     user_name: str
+    nickname: Optional[str] = None
     email: Optional[str]
     type: int
     family_id: int
@@ -155,6 +166,7 @@ class CategoryResponse(BaseModel):
 class PictureUserResponse(BaseModel):
     id: int
     user_name: str
+    nickname: Optional[str] = None
 
 
 class PictureResponse(BaseModel):
@@ -280,6 +292,7 @@ class CommentResponse(BaseModel):
     user_id: int
     picture_id: int
     user_name: str
+    nickname: Optional[str] = None
     create_date: datetime
     update_date: datetime
 
@@ -296,6 +309,7 @@ class CommentResponse(BaseModel):
             user_id=comment.user_id,
             picture_id=comment.picture_id,
             user_name=comment.user.user_name,
+            nickname=comment.user.nickname,
             create_date=comment.create_date,
             update_date=comment.update_date
         )

@@ -5,6 +5,7 @@ import { authService } from "@/services/auth";
 interface User {
   id: number;
   user_name: string;
+  nickname: string | null;
   email: string | null;
   type: number;
   family_id: number;

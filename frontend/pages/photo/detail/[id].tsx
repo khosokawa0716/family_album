@@ -4,6 +4,7 @@ import { Calendar } from "lucide-react";
 import { usePhotoDetail } from "@/hooks/usePhotoDetail";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/utils/date";
+import { getDisplayName } from "@/utils/user";
 import PageHeader from "@/components/PageHeader";
 import PhotoModal from "@/components/PhotoModal";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -197,7 +198,7 @@ export default function PhotoDetail() {
                   <h2 className="text-xl font-bold text-gray-900 mb-2">{firstPhoto.title}</h2>
                 )}
                 <p className="text-sm text-gray-500 mb-1">
-                  投稿者: {firstPhoto.user?.user_name || "不明"}
+                  投稿者: {getDisplayName(firstPhoto.user?.user_name, firstPhoto.user?.nickname)}
                 </p>
                 {isMultiple && (
                   <p className="text-sm text-gray-500 mb-1">{photos.length}枚の写真</p>
@@ -289,7 +290,9 @@ export default function PhotoDetail() {
                     ) : (
                       <div>
                         <div className="flex items-start justify-between mb-2">
-                          <p className="font-medium text-gray-900">{comment.user_name}</p>
+                          <p className="font-medium text-gray-900">
+                            {getDisplayName(comment.user_name, comment.nickname)}
+                          </p>
                           {user?.id === comment.user_id && (
                             <div className="flex gap-2">
                               <button

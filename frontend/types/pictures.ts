@@ -17,6 +17,7 @@ export interface PictureResponse {
   user?: {
     id: number;
     user_name: string;
+    nickname?: string | null;
   } | null;
   title: string | null;
   description: string | null;

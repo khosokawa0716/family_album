@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { usePhotoList } from "@/hooks/usePhotoList";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { formatDate } from "@/utils/date";
+import { getDisplayName } from "@/utils/user";
 import PageHeader from "@/components/PageHeader";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PictureGroupResponse } from "@/types/pictures";
@@ -248,7 +249,7 @@ function GroupCard({
         <div className="p-3 sm:p-4">
           <h3 className="text-lg font-medium text-gray-900">{firstPhoto.title || "無題"}</h3>
           <p className="text-xs text-gray-500 mt-1">
-            投稿者: {firstPhoto.user?.user_name || "不明"}
+            投稿者: {getDisplayName(firstPhoto.user?.user_name, firstPhoto.user?.nickname)}
           </p>
           <p className="text-sm text-gray-500 mt-1">
             {firstPhoto.description || "説明がありません"}
