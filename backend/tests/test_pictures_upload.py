@@ -11,7 +11,7 @@ POST /api/pictures APIのテストファイル（画像アップロード）
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock, patch, mock_open, PropertyMock
+from unittest.mock import MagicMock, patch, mock_open, PropertyMock, AsyncMock
 from datetime import datetime, timedelta
 from jose import jwt
 from io import BytesIO
@@ -28,6 +28,12 @@ client = TestClient(app)
 
 class TestPicturesUploadAPI:
     """POST /api/pictures APIのテストクラス"""
+
+    @pytest.fixture(autouse=True)
+    def mock_line_broadcast(self):
+        """LINE通知は実際のAPIを呼ばず、モックで呼び出しの有無のみ検証する"""
+        with patch('routers.pictures.send_line_broadcast', new_callable=AsyncMock, return_value=True) as mock_broadcast:
+            yield mock_broadcast
 
     def create_test_token(self, user_id: int, family_id: int, user_type: int = 0,
                          status: int = 1, exp_minutes: int = 30):
@@ -214,7 +220,7 @@ class TestPicturesUploadAPI:
 
     @patch('builtins.open', new_callable=mock_open)
     @patch('uuid.uuid4')
-    def test_upload_picture_success(self, mock_uuid, mock_file_open):
+    def test_upload_picture_success(self, mock_uuid, mock_file_open, mock_line_broadcast):
         """正常な画像アップロード（1枚）"""
         fake_uuid = uuid_module.UUID('12345678-1234-5678-1234-567812345678')
         mock_uuid.return_value = fake_uuid
@@ -244,6 +250,37 @@ class TestPicturesUploadAPI:
             assert picture["family_id"] == 1
             assert picture["uploaded_by"] == 1
             assert picture["group_id"] == data["group_id"]
+
+            # アップロード成功時にLINE通知が1回だけ呼ばれること
+            mock_line_broadcast.assert_awaited_once()
+
+        finally:
+            self.teardown_dependency_overrides()
+
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('uuid.uuid4')
+    def test_upload_picture_db_failure_skips_line_notification(self, mock_uuid, mock_file_open, mock_line_broadcast):
+        """DB保存失敗時はLINE通知が呼ばれないこと"""
+        fake_uuid = uuid_module.UUID('12345678-1234-5678-1234-567812345678')
+        mock_uuid.return_value = fake_uuid
+
+        try:
+            mock_user = self.create_mock_user()
+            mock_db = self.setup_mock_db_for_upload(save_success=False)
+            mock_storage = self.create_mock_storage_config()
+
+            self.setup_dependency_overrides(mock_db, mock_user, mock_storage)
+
+            files = self.create_test_files(count=1)
+            token = self.create_test_token(1, 1)
+            headers = {"Authorization": f"Bearer {token}"}
+
+            mock_img = self.create_mock_pil_image()
+            with self.patch_image_processing(mock_img):
+                response = client.post("/api/pictures", files=files, headers=headers)
+
+            assert response.status_code == 500
+            mock_line_broadcast.assert_not_awaited()
 
         finally:
             self.teardown_dependency_overrides()

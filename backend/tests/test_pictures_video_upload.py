@@ -14,7 +14,7 @@ probe_video / strip_metadata_and_copy / extract_thumbnail_frame をパッチし�
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from datetime import datetime, timedelta
 from jose import jwt
 from io import BytesIO
@@ -30,6 +30,12 @@ client = TestClient(app)
 
 class TestPicturesVideoUploadAPI:
     """POST /api/pictures/video APIのテストクラス"""
+
+    @pytest.fixture(autouse=True)
+    def mock_line_broadcast(self):
+        """LINE通知は実際のAPIを呼ばず、モックで呼び出しの有無のみ検証する"""
+        with patch('routers.pictures.send_line_broadcast', new_callable=AsyncMock, return_value=True) as mock_broadcast:
+            yield mock_broadcast
 
     def create_test_token(self, user_id: int, family_id: int, user_type: int = 0,
                          status: int = 1, exp_minutes: int = 30):
@@ -154,7 +160,7 @@ class TestPicturesVideoUploadAPI:
 
     # ========== 正常系テスト ==========
 
-    def test_upload_video_success(self, tmp_path):
+    def test_upload_video_success(self, tmp_path, mock_line_broadcast):
         mock_user = self.create_mock_user()
         mock_category = self.create_mock_category()
         mock_db = self.setup_mock_db_for_upload(mock_category=mock_category)
@@ -184,6 +190,9 @@ class TestPicturesVideoUploadAPI:
         assert picture["width"] == 1920
         assert picture["height"] == 1080
         assert picture["title"] == "テスト動画"
+
+        # アップロード成功時にLINE通知が1回だけ呼ばれること
+        mock_line_broadcast.assert_awaited_once()
 
     # ========== バリデーション系テスト ==========
 

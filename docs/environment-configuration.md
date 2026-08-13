@@ -40,6 +40,22 @@ services:
       - CORS_ORIGINS=http://album.local
 ```
 
+### LINE_CHANNEL_ACCESS_TOKEN
+
+新着投稿（写真・動画アップロード）時に、LINE公式アカウントの友だち全員へブロードキャスト通知するためのチャネルアクセストークンです。
+
+| 環境変数 | 説明 | デフォルト値 |
+|---------|------|-------------|
+| `LINE_CHANNEL_ACCESS_TOKEN` | LINE Messaging APIのチャネルアクセストークン（長期） | 未設定（通知はスキップされる） |
+
+未設定の場合は通知処理自体がスキップされ、アップロードAPIの処理には影響しません。
+
+**設定例:**
+
+```bash
+LINE_CHANNEL_ACCESS_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
 ---
 
 ## フロントエンド（Next.js）
