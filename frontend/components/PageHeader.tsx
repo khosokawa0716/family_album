@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Image, LogOut, Upload } from "lucide-react";
+import { Image, LogOut, Upload, Video } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface PageHeaderProps {
@@ -32,6 +32,14 @@ export default function PageHeader({ title, children }: PageHeaderProps) {
                 <Upload className="h-5 w-5 sm:mr-2" aria-hidden="true" />
                 <span className="hidden sm:inline">写真アップロード</span>
                 <span className="sr-only">写真アップロード</span>
+              </Link>
+              <Link
+                href="/photo/upload/video"
+                className="text-gray-600 hover:text-gray-900 px-2 sm:px-3 py-2 rounded-md text-sm font-medium inline-flex items-center"
+              >
+                <Video className="h-5 w-5 sm:mr-2" aria-hidden="true" />
+                <span className="hidden sm:inline">動画アップロード</span>
+                <span className="sr-only">動画アップロード</span>
               </Link>
             </nav>
           </div>

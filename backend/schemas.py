@@ -170,6 +170,7 @@ class PictureResponse(BaseModel):
     mime_type: Optional[str]
     width: Optional[int]
     height: Optional[int]
+    duration: Optional[int] = None
     taken_date: Optional[datetime]
     category_id: Optional[int]
     status: int

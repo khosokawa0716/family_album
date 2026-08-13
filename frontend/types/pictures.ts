@@ -26,6 +26,7 @@ export interface PictureResponse {
   mime_type: string | null;
   width: number | null;
   height: number | null;
+  duration: number | null; // 動画の再生時間（秒）。画像の場合はnull
   taken_date: string | null; // ISO 8601 date string
   category_id: number | null;
   status: number;

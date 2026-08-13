@@ -24,6 +24,9 @@ class StorageConfig:
         self.auto_create_dirs = os.getenv("AUTO_CREATE_DIRS", "true").lower() == "true"
         self.max_upload_size = int(os.getenv("MAX_UPLOAD_SIZE", "20971520"))  # 20MB
         self.allowed_image_types = self._parse_allowed_types()
+        self.max_video_size = int(os.getenv("MAX_VIDEO_SIZE", "104857600"))  # 100MB
+        self.max_video_duration_seconds = int(os.getenv("MAX_VIDEO_DURATION_SECONDS", "30"))
+        self.allowed_video_types = self._parse_allowed_video_types()
 
         # 初期化時にディレクトリを作成
         if self.auto_create_dirs:
@@ -32,6 +35,11 @@ class StorageConfig:
     def _parse_allowed_types(self) -> List[str]:
         """許可する画像タイプの解析"""
         types_str = os.getenv("ALLOWED_IMAGE_TYPES", "image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif")
+        return [t.strip() for t in types_str.split(",")]
+
+    def _parse_allowed_video_types(self) -> List[str]:
+        """許可する動画タイプの解析"""
+        types_str = os.getenv("ALLOWED_VIDEO_TYPES", "video/mp4,video/quicktime")
         return [t.strip() for t in types_str.split(",")]
 
     def _ensure_directories_exist(self):
@@ -70,6 +78,18 @@ class StorageConfig:
         """ファイルサイズが制限内かチェック"""
         return file_size <= self.max_upload_size
 
+    def is_allowed_video_type(self, mime_type: str) -> bool:
+        """許可されている動画タイプかチェック"""
+        return mime_type in self.allowed_video_types
+
+    def is_valid_video_size(self, file_size: int) -> bool:
+        """動画ファイルサイズが制限内かチェック"""
+        return file_size <= self.max_video_size
+
+    def is_valid_video_duration(self, duration_seconds: float) -> bool:
+        """動画の長さが制限内かチェック"""
+        return duration_seconds <= self.max_video_duration_seconds
+
     def get_storage_info(self) -> dict:
         """ストレージ設定情報を辞書で返す"""
         return {
@@ -78,6 +98,9 @@ class StorageConfig:
             "thumbnails_path": str(self.thumbnails_path),
             "max_upload_size": self.max_upload_size,
             "allowed_image_types": self.allowed_image_types,
+            "max_video_size": self.max_video_size,
+            "max_video_duration_seconds": self.max_video_duration_seconds,
+            "allowed_video_types": self.allowed_video_types,
             "auto_create_dirs": self.auto_create_dirs
         }
 

@@ -134,12 +134,22 @@ export default function PhotoDetail() {
             ) : (
               /* 1枚: 従来レイアウト */
               <div className="mb-4">
-                <img
-                  src={firstPhoto.file_path}
-                  alt={firstPhoto.title || "Photo"}
-                  className="w-full max-h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => setModalPhoto(firstPhoto)}
-                />
+                {firstPhoto.mime_type?.startsWith("video/") ? (
+                  <video
+                    src={firstPhoto.file_path}
+                    poster={firstPhoto.thumbnail_path || undefined}
+                    controls
+                    playsInline
+                    className="w-full max-h-96 bg-black"
+                  />
+                ) : (
+                  <img
+                    src={firstPhoto.file_path}
+                    alt={firstPhoto.title || "Photo"}
+                    className="w-full max-h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setModalPhoto(firstPhoto)}
+                  />
+                )}
               </div>
             )}
 

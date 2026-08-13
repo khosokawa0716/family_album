@@ -38,6 +38,10 @@ export const pictureService = {
     return apiClient.postFormData<PictureUploadResponse>("/pictures", formData);
   },
 
+  async uploadVideo(formData: FormData): Promise<PictureUploadResponse> {
+    return apiClient.postFormData<PictureUploadResponse>("/pictures/video", formData);
+  },
+
   async deletePicture(pictureId: number): Promise<void> {
     return apiClient.delete<void>(`/pictures/${pictureId}`);
   },

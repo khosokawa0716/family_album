@@ -8,6 +8,7 @@ from PIL import Image, ExifTags, ImageOps
 from pillow_heif import register_heif_opener
 import uuid
 import os
+import tempfile
 from pathlib import Path
 import logging
 from io import BytesIO
@@ -21,6 +22,9 @@ from schemas import (
 from dependencies import get_current_user
 from config.storage import get_storage_config, StorageConfig
 from utils.url_signature import verify_url_signature, get_signature_info, create_signed_url
+from utils.video_processing import (
+    probe_video, strip_metadata_and_copy, extract_thumbnail_frame, VideoProcessingError
+)
 
 router = APIRouter(prefix="/api", tags=["pictures"])
 logger = logging.getLogger(__name__)
@@ -51,6 +55,7 @@ def build_picture_response_data(picture: Picture, user_name: Optional[str] = Non
         "mime_type": picture.mime_type,
         "width": picture.width,
         "height": picture.height,
+        "duration": picture.duration,
         "taken_date": picture.taken_date,
         "category_id": picture.category_id,
         "status": picture.status,
@@ -790,6 +795,265 @@ async def upload_picture(
     return PictureUploadResponse(
         group_id=group_id,
         pictures=picture_responses
+    )
+
+
+async def process_and_save_video(
+    file: UploadFile,
+    storage_config: StorageConfig
+) -> dict:
+    """
+    単一動画ファイルのバリデーション、処理、保存を行うヘルパー関数。
+
+    位置情報等のメタデータは除去するが、映像・音声は再エンコードしない
+    （ffmpegのストリームコピーのみ使用し、Raspberry Piへの負荷を抑える）。
+
+    Returns:
+        dict: photo_path, thumb_path, relative_photo_path, relative_thumb_path,
+              file_size, detected_mime, width, height, duration, taken_date
+
+    Raises:
+        HTTPException: バリデーションエラーまたは保存エラー
+    """
+    # 1. ファイル基本検証
+    content_type = file.content_type or ""
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    # 拡張子からContent-Typeを補正（HEIC対応と同様のフォールバック）
+    ext_to_mime = {".mp4": "video/mp4", ".mov": "video/quicktime"}
+    if file_extension in ext_to_mime and content_type in ("", "application/octet-stream"):
+        content_type = ext_to_mime[file_extension]
+
+    if not content_type:
+        raise HTTPException(status_code=400, detail="File content type is required")
+
+    if not storage_config.is_allowed_video_type(content_type):
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type {content_type} is not allowed. "
+                   f"Allowed types: {', '.join(storage_config.allowed_video_types)}"
+        )
+
+    file_content = await file.read()
+    file_size = len(file_content)
+
+    if not storage_config.is_valid_video_size(file_size):
+        max_size_mb = storage_config.max_video_size / 1024 / 1024
+        raise HTTPException(
+            status_code=400,
+            detail=f"File size ({file_size} bytes) is too large. "
+                   f"Maximum allowed: {max_size_mb:.1f}MB"
+        )
+
+    if not file_extension:
+        ext_by_mime = {"video/mp4": ".mp4", "video/quicktime": ".mov"}
+        file_extension = ext_by_mime.get(content_type, ".mp4")
+
+    # 2. 一時ファイルに書き出してffprobeで検証
+    tmp_file = tempfile.NamedTemporaryFile(suffix=file_extension, delete=False)
+    tmp_path = Path(tmp_file.name)
+    tmp_file.write(file_content)
+    tmp_file.close()
+
+    try:
+        try:
+            probe_result = probe_video(tmp_path)
+        except VideoProcessingError as e:
+            logger.error(f"Video probe failed: {e}")
+            raise HTTPException(status_code=400, detail="Invalid video file or unsupported format")
+
+        if not probe_result["has_video_stream"] or probe_result["duration_seconds"] is None:
+            raise HTTPException(status_code=400, detail="Invalid video file or unsupported format")
+
+        if not storage_config.is_valid_video_duration(probe_result["duration_seconds"]):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Video is too long ({probe_result['duration_seconds']:.1f}s). "
+                       f"Maximum allowed: {storage_config.max_video_duration_seconds}s"
+            )
+
+        # 3. ユニークファイル名生成
+        unique_filename = f"{uuid.uuid4().hex}{file_extension}"
+        thumb_filename = f"thumb_{uuid.uuid4().hex}.jpg"
+
+        video_path = storage_config.get_photo_file_path(unique_filename)
+        thumb_path = storage_config.get_thumbnail_file_path(thumb_filename)
+
+        # 4. ファイル保存処理（メタデータ除去 + サムネイル抽出）
+        raw_frame_path: Optional[Path] = None
+        try:
+            # 位置情報等のメタデータを除去して保存（再エンコードなし）
+            strip_metadata_and_copy(tmp_path, video_path)
+
+            # サムネイル用フレームを抽出してリサイズ保存
+            raw_frame = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+            raw_frame_path = Path(raw_frame.name)
+            raw_frame.close()
+            extract_thumbnail_frame(video_path, raw_frame_path)
+
+            with Image.open(raw_frame_path) as frame:
+                frame = frame.convert("RGB")
+                frame.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                with open(thumb_path, 'wb') as f:
+                    frame.save(f, format="JPEG", quality=85)
+
+            logger.info(f"Video files saved: {video_path}, {thumb_path}")
+
+        except VideoProcessingError as e:
+            logger.error(f"Video processing failed: {e}")
+            for path in [video_path, thumb_path]:
+                if path.exists():
+                    try:
+                        path.unlink()
+                    except Exception:
+                        pass
+            raise HTTPException(status_code=500, detail="Failed to process video file")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Video file save failed: {e}")
+            for path in [video_path, thumb_path]:
+                if path.exists():
+                    try:
+                        path.unlink()
+                    except Exception:
+                        pass
+            raise HTTPException(status_code=500, detail="Failed to save video files")
+        finally:
+            if raw_frame_path and raw_frame_path.exists():
+                raw_frame_path.unlink()
+
+        final_file_size = video_path.stat().st_size
+
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
+
+    # 5. 撮影日時のパース
+    taken_date = None
+    creation_time = probe_result.get("creation_time")
+    if creation_time:
+        try:
+            taken_date = datetime.fromisoformat(creation_time.replace("Z", "+00:00"))
+        except ValueError:
+            logger.warning(f"Invalid video creation_time format: {creation_time}")
+
+    relative_video_path = str(Path("photos") / unique_filename)
+    relative_thumb_path = str(Path("thumbnails") / thumb_filename)
+
+    return {
+        "photo_path": video_path,
+        "thumb_path": thumb_path,
+        "relative_photo_path": relative_video_path,
+        "relative_thumb_path": relative_thumb_path,
+        "file_size": final_file_size,
+        "detected_mime": content_type,
+        "width": probe_result["width"],
+        "height": probe_result["height"],
+        "duration": int(probe_result["duration_seconds"]),
+        "taken_date": taken_date,
+    }
+
+
+@router.post("/pictures/video", response_model=PictureUploadResponse, status_code=201)
+async def upload_video(
+    file: UploadFile = File(...),
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    category_id: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    storage_config: StorageConfig = Depends(get_storage_config)
+):
+    """
+    動画アップロードAPI（1回1本のみ）
+
+    multipart/form-dataで動画ファイル1本とメタデータを受信し、
+    長さ・サイズの検証、位置情報メタデータの除去、サムネイル生成を行って保存する。
+    写真の複数枚アップロードとは別エンドポイント・別フローとする。
+
+    Args:
+        file: アップロードする動画ファイル（1本）
+        title: 動画のタイトル（任意）
+        description: 動画の説明（任意）
+        category_id: カテゴリID（任意）
+        db: データベースセッション
+        current_user: 認証済みユーザー情報
+        storage_config: ストレージ設定
+
+    Returns:
+        PictureUploadResponse: 保存された動画情報
+
+    Raises:
+        HTTPException:
+            - 400: ファイル検証エラー（形式・サイズ・長さ超過等）、カテゴリエラー
+            - 500: ファイル保存エラー、データベースエラー
+    """
+
+    # 1. カテゴリ検証（指定された場合）
+    if category_id is not None:
+        category = db.query(Category).filter(
+            and_(
+                Category.id == category_id,
+                Category.family_id == current_user.family_id,
+                Category.status == 1
+            )
+        ).first()
+
+        if not category:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Category with ID {category_id} not found or not accessible"
+            )
+
+    # 2. 動画処理・保存
+    result = await process_and_save_video(file, storage_config)
+
+    # 3. データベース保存
+    group_id = str(uuid.uuid4())
+    clean_title = title.strip() if title and title.strip() else None
+    clean_description = description.strip() if description and description.strip() else None
+
+    picture = Picture(
+        family_id=current_user.family_id,
+        uploaded_by=current_user.id,
+        group_id=group_id,
+        title=clean_title,
+        description=clean_description,
+        file_path=result["relative_photo_path"],
+        thumbnail_path=result["relative_thumb_path"],
+        file_size=result["file_size"],
+        mime_type=result["detected_mime"],
+        width=result["width"],
+        height=result["height"],
+        duration=result["duration"],
+        taken_date=result["taken_date"],
+        category_id=category_id,
+        status=1
+    )
+
+    try:
+        db.add(picture)
+        db.commit()
+        db.refresh(picture)
+        logger.info(f"Video saved to database: id={picture.id}, group_id={group_id}, User={current_user.id}")
+    except Exception as e:
+        logger.error(f"Database save failed: {e}")
+        db.rollback()
+        for path in [result["photo_path"], result["thumb_path"]]:
+            if path.exists():
+                try:
+                    path.unlink()
+                    logger.info(f"Cleaned up file: {path}")
+                except Exception as cleanup_error:
+                    logger.error(f"Failed to cleanup file {path}: {cleanup_error}")
+        raise HTTPException(status_code=500, detail="Failed to save video information")
+
+    picture_response = build_picture_response_data(picture, current_user.user_name, signed_urls=False)
+
+    return PictureUploadResponse(
+        group_id=group_id,
+        pictures=[picture_response]
     )
 
 

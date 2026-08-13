@@ -60,6 +60,7 @@ class Picture(Base):
     mime_type = Column(String(100))
     width = Column(INTEGER(unsigned=True))
     height = Column(INTEGER(unsigned=True))
+    duration = Column(INTEGER(unsigned=True), nullable=True)
     taken_date = Column(DateTime)
     category_id = Column(INTEGER(unsigned=True), ForeignKey('categories.id'))
     status = Column(SmallInteger, nullable=False, default=1)
