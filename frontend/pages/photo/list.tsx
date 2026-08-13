@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/router";
+import { Play } from "lucide-react";
 import { usePhotoList } from "@/hooks/usePhotoList";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { formatDate } from "@/utils/date";
@@ -7,6 +8,8 @@ import { getDisplayName } from "@/utils/user";
 import PageHeader from "@/components/PageHeader";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PictureGroupResponse } from "@/types/pictures";
+
+const isVideo = (mimeType: string | null) => !!mimeType?.startsWith("video/");
 
 /**
  * 写真一覧ページ（グループ表示・無限スクロール対応）
@@ -241,11 +244,20 @@ function GroupCard({
         className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
         onClick={onClick}
       >
-        <img
-          src={firstPhoto.thumbnail_path || ""}
-          alt={firstPhoto.title || "Photo"}
-          className="w-full h-48 object-cover rounded-t-lg"
-        />
+        <div className="relative">
+          <img
+            src={firstPhoto.thumbnail_path || ""}
+            alt={firstPhoto.title || "Photo"}
+            className="w-full h-48 object-cover rounded-t-lg"
+          />
+          {isVideo(firstPhoto.mime_type) && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-t-lg bg-black/10">
+              <div className="bg-black/60 rounded-full p-2.5">
+                <Play className="w-5 h-5 text-white fill-white" />
+              </div>
+            </div>
+          )}
+        </div>
         <div className="p-3 sm:p-4">
           <h3 className="text-lg font-medium text-gray-900">{firstPhoto.title || "無題"}</h3>
           <p className="text-xs text-gray-500 mt-1">
@@ -308,12 +320,20 @@ function ImageSlider({ group }: { group: PictureGroupResponse }) {
         className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide rounded-t-lg"
       >
         {group.pictures.map((photo) => (
-          <img
-            key={photo.id}
-            src={photo.thumbnail_path || ""}
-            alt={photo.title || "Photo"}
-            className="w-full h-48 object-cover flex-shrink-0 snap-center"
-          />
+          <div key={photo.id} className="relative w-full flex-shrink-0 snap-center">
+            <img
+              src={photo.thumbnail_path || ""}
+              alt={photo.title || "Photo"}
+              className="w-full h-48 object-cover"
+            />
+            {isVideo(photo.mime_type) && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                <div className="bg-black/60 rounded-full p-2.5">
+                  <Play className="w-5 h-5 text-white fill-white" />
+                </div>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
