@@ -56,6 +56,26 @@ services:
 LINE_CHANNEL_ACCESS_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
+### FRONTEND_URL
+
+LINE通知本文に含める詳細ページ（`/photo/detail/{group_id}`）のURLを組み立てるための、フロントエンドの公開URLです。
+
+| 環境変数 | 説明 | デフォルト値 |
+|---------|------|-------------|
+| `FRONTEND_URL` | フロントエンドの公開URL（末尾スラッシュなし推奨） | 未設定（通知本文にURLを含めない） |
+
+未設定の場合は通知処理自体はスキップされず、メッセージ本文からURLの行が省かれるだけです。
+
+**設定例:**
+
+```bash
+# 本番環境（Raspberry PiへのmDNS接続を前提）
+FRONTEND_URL=http://album.local
+
+# ローカル開発
+FRONTEND_URL=http://localhost:3000
+```
+
 ---
 
 ## フロントエンド（Next.js）
@@ -103,6 +123,7 @@ services:
   api:
     environment:
       - CORS_ORIGINS=http://album.local
+      - FRONTEND_URL=http://album.local
 
   frontend:
     environment:

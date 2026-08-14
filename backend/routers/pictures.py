@@ -26,7 +26,7 @@ from utils.url_signature import verify_url_signature, get_signature_info, create
 from utils.video_processing import (
     probe_video, strip_metadata_and_copy, extract_thumbnail_frame, VideoProcessingError
 )
-from line_notify import send_line_broadcast
+from line_notify import send_line_broadcast, build_upload_notification_message
 
 router = APIRouter(prefix="/api", tags=["pictures"])
 logger = logging.getLogger(__name__)
@@ -774,7 +774,15 @@ async def upload_picture(
         logger.info(f"Pictures saved to database: count={len(pictures)}, group_id={group_id}, User={current_user.id}")
 
         try:
-            await send_line_broadcast("新しい写真が投稿されました")
+            message = build_upload_notification_message(
+                media_type="photo",
+                count=len(pictures),
+                title=clean_title,
+                user_name=current_user.user_name,
+                nickname=current_user.nickname,
+                group_id=group_id,
+            )
+            await send_line_broadcast(message)
         except Exception as e:
             logger.error(f"LINE notification failed: {e}")
 
@@ -1046,7 +1054,15 @@ async def upload_video(
         logger.info(f"Video saved to database: id={picture.id}, group_id={group_id}, User={current_user.id}")
 
         try:
-            await send_line_broadcast("新しい動画が投稿されました")
+            message = build_upload_notification_message(
+                media_type="video",
+                count=1,
+                title=clean_title,
+                user_name=current_user.user_name,
+                nickname=current_user.nickname,
+                group_id=group_id,
+            )
+            await send_line_broadcast(message)
         except Exception as e:
             logger.error(f"LINE notification failed: {e}")
 
