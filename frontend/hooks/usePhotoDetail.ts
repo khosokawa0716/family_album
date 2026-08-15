@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { pictureService } from "@/services/pictures";
 import { commentService } from "@/services/comments";
+import { ApiError } from "@/lib/api/client";
 import { PictureResponse } from "@/types/pictures";
 import { CommentResponse } from "@/types/comments";
 
 export const usePhotoDetail = (id: string) => {
-  console.log("usePhotoDetail called with id:", id);
   const router = useRouter();
   const [photos, setPhotos] = useState<PictureResponse[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<PictureResponse | null>(null);
@@ -48,6 +48,10 @@ export const usePhotoDetail = (id: string) => {
         setSelectedPhoto(response.pictures[0]);
       }
     } catch (err) {
+      // 401はapiClient側でログインページへリダイレクト済みのため、ここでは何もしない
+      if (err instanceof ApiError && err.status === 401) {
+        return;
+      }
       console.error("Error fetching group detail:", err);
       setError("写真の読み込みに失敗しました");
       alert("写真の読み込みに失敗しました");

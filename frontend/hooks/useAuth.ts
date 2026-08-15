@@ -23,7 +23,7 @@ export const useAuth = () => {
   const checkAuth = async () => {
     setIsLoading(true);
     try {
-      const token = sessionStorage.getItem("access_token");
+      const token = localStorage.getItem("access_token");
       if (!token) {
         setIsAuthenticated(false);
         setUser(null);
@@ -37,8 +37,8 @@ export const useAuth = () => {
     } catch {
       setIsAuthenticated(false);
       setUser(null);
-      sessionStorage.removeItem("access_token");
-      sessionStorage.removeItem("user");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user");
       return false;
     } finally {
       setIsLoading(false);
@@ -60,8 +60,8 @@ export const useAuth = () => {
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      sessionStorage.removeItem("access_token");
-      sessionStorage.removeItem("user");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user");
       setUser(null);
       setIsAuthenticated(false);
       router.push("/login");
