@@ -106,6 +106,7 @@ class TestPicturesDetailAPI:
         mock_db = MagicMock()
         mock_query = MagicMock()
         mock_db.query.return_value = mock_query
+        mock_query.outerjoin.return_value = mock_query
         mock_query.filter.return_value = mock_query
 
         # 家族ID・statusのフィルタリング条件をチェック
@@ -113,7 +114,7 @@ class TestPicturesDetailAPI:
             # 家族IDが一致し、statusが1の場合のみ返す
             if (picture_data.family_id == user_family_id and
                 picture_data.status == 1):
-                mock_query.first.return_value = picture_data
+                mock_query.first.return_value = (picture_data, "test_user", None, None)
             else:
                 mock_query.first.return_value = None
         else:
@@ -139,6 +140,7 @@ class TestPicturesDetailAPI:
         mock_user.id = user_id
         mock_user.family_id = family_id
         mock_user.user_name = f"test_user_{user_id}"
+        mock_user.nickname = None
         mock_user.type = user_type
         mock_user.status = status
         return mock_user
@@ -149,6 +151,7 @@ class TestPicturesDetailAPI:
         mock_picture.id = picture_id
         mock_picture.family_id = family_id
         mock_picture.uploaded_by = 1
+        mock_picture.group_id = f"group-{picture_id}"
         mock_picture.title = "Test Picture"
         mock_picture.description = "Test Description"
         mock_picture.file_path = "/path/to/test.jpg"

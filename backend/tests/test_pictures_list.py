@@ -115,6 +115,7 @@ class TestPicturesListAPI:
         mock_db = MagicMock()
         mock_query = MagicMock()
         mock_db.query.return_value = mock_query
+        mock_query.outerjoin.return_value = mock_query
         mock_query.filter.return_value = mock_query
         mock_query.count.return_value = mock_count
         mock_query.order_by.return_value = mock_query
@@ -184,11 +185,12 @@ class TestPicturesListAPI:
         family1_picture.family_id = 1
         family1_picture.status = 1
         family1_picture.uploaded_by = 1
+        family1_picture.group_id = "group-1"
         family1_picture.file_path = "/path/to/pic1.jpg"
         family1_picture.create_date = datetime.now()
         family1_picture.update_date = datetime.now()
 
-        mock_db = self.setup_mock_db(mock_count=1, mock_results=[family1_picture])
+        mock_db = self.setup_mock_db(mock_count=1, mock_results=[(family1_picture, mock_user.user_name, None, None)])
         self.setup_dependency_overrides(mock_db, mock_user)
 
         try:
@@ -224,11 +226,12 @@ class TestPicturesListAPI:
         test_picture.family_id = 1
         test_picture.status = 1
         test_picture.uploaded_by = 1
+        test_picture.group_id = "group-1"
         test_picture.file_path = "/path/to/pic.jpg"
         test_picture.create_date = datetime.now()
         test_picture.update_date = datetime.now()
 
-        mock_db = self.setup_mock_db(mock_count=1, mock_results=[test_picture])
+        mock_db = self.setup_mock_db(mock_count=1, mock_results=[(test_picture, admin_user.user_name, None, None)])
 
         # 管理者でのアクセス
         self.setup_dependency_overrides(mock_db, admin_user)
@@ -293,13 +296,15 @@ class TestPicturesListAPI:
             picture.family_id = 1
             picture.uploaded_by = 1
             picture.title = f"Test Picture {i}"
+            picture.group_id = f"group-{i}"
             picture.file_path = f"/path/to/pic{i}.jpg"
             picture.status = 1
             picture.create_date = datetime.now()
             picture.update_date = datetime.now()
             test_pictures.append(picture)
 
-        mock_db = self.setup_mock_db(mock_count=2, mock_results=test_pictures)
+        mock_results = [(picture, mock_user.user_name, None, None) for picture in test_pictures]
+        mock_db = self.setup_mock_db(mock_count=2, mock_results=mock_results)
         self.setup_dependency_overrides(mock_db, mock_user)
 
         try:
@@ -328,6 +333,7 @@ class TestPicturesListAPI:
         test_picture.uploaded_by = 1
         test_picture.title = "Test Picture"
         test_picture.description = "Test Description"
+        test_picture.group_id = "group-1"
         test_picture.file_path = "/path/to/pic.jpg"
         test_picture.thumbnail_path = "/path/to/thumb.jpg"
         test_picture.file_size = 1024
@@ -340,7 +346,7 @@ class TestPicturesListAPI:
         test_picture.create_date = datetime.now()
         test_picture.update_date = datetime.now()
 
-        mock_db = self.setup_mock_db(mock_count=1, mock_results=[test_picture])
+        mock_db = self.setup_mock_db(mock_count=1, mock_results=[(test_picture, mock_user.user_name, None, None)])
         self.setup_dependency_overrides(mock_db, mock_user)
 
         try:

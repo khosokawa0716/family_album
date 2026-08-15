@@ -83,6 +83,7 @@ def test_get_deleted_pictures_non_admin():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 1
     mock_user.status = 1
 
@@ -104,6 +105,7 @@ def test_get_deleted_pictures_admin_success():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 10
     mock_user.status = 1
 
@@ -114,6 +116,7 @@ def test_get_deleted_pictures_admin_success():
     mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = []
 
     mock_db_session.query.return_value = mock_query
+    mock_query.outerjoin.return_value = mock_query
 
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_db] = lambda: mock_db_session
@@ -137,6 +140,7 @@ def test_get_deleted_pictures_family_scope():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 10
     mock_user.status = 1
 
@@ -147,6 +151,7 @@ def test_get_deleted_pictures_family_scope():
     mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = []
 
     mock_db_session.query.return_value = mock_query
+    mock_query.outerjoin.return_value = mock_query
 
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_db] = lambda: mock_db_session
@@ -172,6 +177,7 @@ def test_get_deleted_pictures_empty_list():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 10
     mock_user.status = 1
 
@@ -182,6 +188,7 @@ def test_get_deleted_pictures_empty_list():
     mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = []
 
     mock_db_session.query.return_value = mock_query
+    mock_query.outerjoin.return_value = mock_query
 
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_db] = lambda: mock_db_session
@@ -211,6 +218,7 @@ def test_get_deleted_pictures_success(mock_create_signed_url):
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 10
     mock_user.status = 1
 
@@ -230,6 +238,7 @@ def test_get_deleted_pictures_success(mock_create_signed_url):
     mock_picture1.taken_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_picture1.category_id = 1
     mock_picture1.status = 0
+    mock_picture1.group_id = "group-1"
     mock_picture1.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_picture1.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_picture1.deleted_at = datetime(2024, 1, 2, 10, 0, 0)
@@ -249,6 +258,7 @@ def test_get_deleted_pictures_success(mock_create_signed_url):
     mock_picture2.taken_date = datetime(2024, 1, 3, 10, 0, 0)
     mock_picture2.category_id = None
     mock_picture2.status = 0
+    mock_picture2.group_id = "group-2"
     mock_picture2.create_date = datetime(2024, 1, 3, 10, 0, 0)
     mock_picture2.update_date = datetime(2024, 1, 4, 10, 0, 0)
     mock_picture2.deleted_at = datetime(2024, 1, 4, 10, 0, 0)
@@ -258,10 +268,11 @@ def test_get_deleted_pictures_success(mock_create_signed_url):
     mock_query = MagicMock()
     mock_query.filter.return_value.count.return_value = 2
     mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [
-        mock_picture2, mock_picture1  # deleted_at降順
+        (mock_picture2, "test_user", None, None), (mock_picture1, "test_user", None, None)  # deleted_at降順
     ]
 
     mock_db_session.query.return_value = mock_query
+    mock_query.outerjoin.return_value = mock_query
 
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_db] = lambda: mock_db_session
@@ -292,6 +303,7 @@ def test_get_deleted_pictures_response_format(mock_create_signed_url):
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 10
     mock_user.status = 1
 
@@ -311,6 +323,7 @@ def test_get_deleted_pictures_response_format(mock_create_signed_url):
     mock_picture.taken_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_picture.category_id = 1
     mock_picture.status = 0
+    mock_picture.group_id = "group-1"
     mock_picture.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_picture.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_picture.deleted_at = datetime(2024, 1, 2, 10, 0, 0)
@@ -319,9 +332,10 @@ def test_get_deleted_pictures_response_format(mock_create_signed_url):
     mock_db_session = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.count.return_value = 1
-    mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [mock_picture]
+    mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [(mock_picture, "test_user", None, None)]
 
     mock_db_session.query.return_value = mock_query
+    mock_query.outerjoin.return_value = mock_query
 
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_db] = lambda: mock_db_session
@@ -369,6 +383,7 @@ def test_get_deleted_pictures_sort_order(mock_create_signed_url):
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 10
     mock_user.status = 1
 
@@ -388,6 +403,7 @@ def test_get_deleted_pictures_sort_order(mock_create_signed_url):
     mock_picture_new.taken_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_picture_new.category_id = None
     mock_picture_new.status = 0
+    mock_picture_new.group_id = "group-new"
     mock_picture_new.create_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_picture_new.update_date = datetime(2024, 1, 3, 10, 0, 0)
     mock_picture_new.deleted_at = datetime(2024, 1, 3, 10, 0, 0)
@@ -407,6 +423,7 @@ def test_get_deleted_pictures_sort_order(mock_create_signed_url):
     mock_picture_old.taken_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_picture_old.category_id = None
     mock_picture_old.status = 0
+    mock_picture_old.group_id = "group-old"
     mock_picture_old.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_picture_old.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_picture_old.deleted_at = datetime(2024, 1, 2, 10, 0, 0)
@@ -416,10 +433,11 @@ def test_get_deleted_pictures_sort_order(mock_create_signed_url):
     mock_query = MagicMock()
     mock_query.filter.return_value.count.return_value = 2
     mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [
-        mock_picture_new, mock_picture_old
+        (mock_picture_new, "test_user", None, None), (mock_picture_old, "test_user", None, None)
     ]
 
     mock_db_session.query.return_value = mock_query
+    mock_query.outerjoin.return_value = mock_query
 
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_db] = lambda: mock_db_session
@@ -453,6 +471,7 @@ def test_get_deleted_pictures_deleted_only(mock_create_signed_url):
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 10
     mock_user.status = 1
 
@@ -472,6 +491,7 @@ def test_get_deleted_pictures_deleted_only(mock_create_signed_url):
     mock_picture.taken_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_picture.category_id = None
     mock_picture.status = 0
+    mock_picture.group_id = "group-1"
     mock_picture.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_picture.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_picture.deleted_at = datetime(2024, 1, 2, 10, 0, 0)
@@ -480,9 +500,10 @@ def test_get_deleted_pictures_deleted_only(mock_create_signed_url):
     mock_db_session = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.count.return_value = 1
-    mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [mock_picture]
+    mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [(mock_picture, "test_user", None, None)]
 
     mock_db_session.query.return_value = mock_query
+    mock_query.outerjoin.return_value = mock_query
 
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_db] = lambda: mock_db_session
@@ -505,6 +526,7 @@ def test_get_deleted_pictures_exclude_active():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 10
     mock_user.status = 1
 
@@ -515,6 +537,7 @@ def test_get_deleted_pictures_exclude_active():
     mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = []
 
     mock_db_session.query.return_value = mock_query
+    mock_query.outerjoin.return_value = mock_query
 
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_db] = lambda: mock_db_session
@@ -545,6 +568,7 @@ def test_get_deleted_pictures_pagination(mock_create_signed_url):
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 10
     mock_user.status = 1
 
@@ -564,6 +588,7 @@ def test_get_deleted_pictures_pagination(mock_create_signed_url):
     mock_picture.taken_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_picture.category_id = None
     mock_picture.status = 0
+    mock_picture.group_id = "group-1"
     mock_picture.create_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_picture.update_date = datetime(2024, 1, 3, 10, 0, 0)
     mock_picture.deleted_at = datetime(2024, 1, 3, 10, 0, 0)
@@ -572,9 +597,10 @@ def test_get_deleted_pictures_pagination(mock_create_signed_url):
     mock_db_session = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.count.return_value = 3
-    mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [mock_picture]
+    mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [(mock_picture, "test_user", None, None)]
 
     mock_db_session.query.return_value = mock_query
+    mock_query.outerjoin.return_value = mock_query
 
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_db] = lambda: mock_db_session
@@ -604,6 +630,7 @@ def test_get_deleted_pictures_has_more(mock_create_signed_url):
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.type = 10
     mock_user.status = 1
 
@@ -623,6 +650,7 @@ def test_get_deleted_pictures_has_more(mock_create_signed_url):
     mock_picture1.taken_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_picture1.category_id = None
     mock_picture1.status = 0
+    mock_picture1.group_id = "group-1"
     mock_picture1.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_picture1.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_picture1.deleted_at = datetime(2024, 1, 2, 10, 0, 0)
@@ -631,9 +659,10 @@ def test_get_deleted_pictures_has_more(mock_create_signed_url):
     mock_db_session = MagicMock()
     mock_query = MagicMock()
     mock_query.filter.return_value.count.return_value = 1
-    mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [mock_picture1]
+    mock_query.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [(mock_picture1, "test_user", None, None)]
 
     mock_db_session.query.return_value = mock_query
+    mock_query.outerjoin.return_value = mock_query
 
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_db] = lambda: mock_db_session

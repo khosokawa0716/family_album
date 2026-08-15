@@ -45,6 +45,8 @@ def test_login_success(client, monkeypatch):
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.user_name = "test_user"
+    mock_user.nickname = None
+    mock_user.avatar_path = None
     mock_user.password = "hashed_password"
     mock_user.email = "test@example.com"
     mock_user.type = 0
@@ -88,6 +90,8 @@ def test_login_invalid_password(client, monkeypatch):
 
     mock_user = MagicMock()
     mock_user.user_name = "test_user"
+    mock_user.nickname = None
+    mock_user.avatar_path = None
     mock_user.password = "hashed_password"
     monkeypatch.setattr("auth.get_user_by_username", lambda username, db: mock_user)
 
