@@ -35,6 +35,7 @@ def _to_user_response(user: User) -> UserResponse:
         id=user.id,
         user_name=user.user_name,
         nickname=user.nickname,
+        theme_color=user.theme_color,
         avatar_path=build_avatar_url(user.avatar_path),
         email=user.email,
         type=user.type,

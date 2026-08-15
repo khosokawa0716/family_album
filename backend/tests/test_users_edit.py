@@ -128,6 +128,7 @@ def test_edit_user_success_as_admin(client):
     mock_admin_user.type = 10  # 管理者
     mock_admin_user.status = 1
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
 
     # 編集対象ユーザーのモック
     mock_target_user = MagicMock()
@@ -138,6 +139,7 @@ def test_edit_user_success_as_admin(client):
     mock_target_user.family_id = 1
     mock_target_user.status = 1
     mock_target_user.nickname = None
+    mock_target_user.theme_color = None
     mock_target_user.create_date = "2023-01-01T00:00:00"
     mock_target_user.update_date = "2023-01-01T00:00:00"
 
@@ -182,6 +184,7 @@ def test_edit_user_success_self(client):
     mock_user.family_id = 1
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
     mock_user.create_date = "2023-01-01T00:00:00"
     mock_user.update_date = "2023-01-01T00:00:00"
 
@@ -224,6 +227,7 @@ def test_edit_user_other_user_forbidden(client):
     mock_user.type = 0  # 一般ユーザー
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
 
     # 他のユーザーのモック
     mock_other_user = MagicMock()
@@ -232,6 +236,7 @@ def test_edit_user_other_user_forbidden(client):
     mock_other_user.type = 0
     mock_other_user.status = 1
     mock_other_user.nickname = None
+    mock_other_user.theme_color = None
 
     # データベースセッションのモック
     mock_db = MagicMock()
@@ -268,6 +273,7 @@ def test_edit_user_nonexistent_id(client):
     mock_admin_user.type = 10
     mock_admin_user.status = 1
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
 
     # データベースセッションのモック（ユーザーが見つからない）
     mock_db = MagicMock()
@@ -315,6 +321,7 @@ def test_edit_user_duplicate_username(client):
     mock_admin_user.type = 10
     mock_admin_user.status = 1
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
 
     # 編集対象ユーザーのモック
     mock_target_user = MagicMock()
@@ -325,6 +332,7 @@ def test_edit_user_duplicate_username(client):
     mock_target_user.family_id = 1
     mock_target_user.status = 1
     mock_target_user.nickname = None
+    mock_target_user.theme_color = None
 
     # データベースセッションのモック（IntegrityErrorを発生させる）
     from sqlalchemy.exc import IntegrityError
@@ -368,6 +376,7 @@ def test_edit_user_duplicate_email(client):
     mock_admin_user.type = 10
     mock_admin_user.status = 1
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
 
     # 編集対象ユーザーのモック
     mock_target_user = MagicMock()
@@ -378,6 +387,7 @@ def test_edit_user_duplicate_email(client):
     mock_target_user.family_id = 1
     mock_target_user.status = 1
     mock_target_user.nickname = None
+    mock_target_user.theme_color = None
 
     # データベースセッションのモック（IntegrityErrorを発生させる）
     from sqlalchemy.exc import IntegrityError
@@ -422,6 +432,7 @@ def test_edit_user_invalid_email_format(client):
     mock_user.type = 0
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
 
     # 編集対象ユーザーのモック（自分自身）
     mock_db = MagicMock()
@@ -457,6 +468,7 @@ def test_edit_user_password_too_short(client):
     mock_user.type = 0
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
 
     # 編集対象ユーザーのモック（自分自身）
     mock_db = MagicMock()
@@ -493,6 +505,7 @@ def test_edit_user_invalid_type_value(client):
     mock_admin_user.type = 10
     mock_admin_user.status = 1
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
 
     # 編集対象ユーザーのモック
     mock_target_user = MagicMock()
@@ -501,6 +514,7 @@ def test_edit_user_invalid_type_value(client):
     mock_target_user.type = 0
     mock_target_user.status = 1
     mock_target_user.nickname = None
+    mock_target_user.theme_color = None
 
     mock_db = MagicMock()
     mock_query = MagicMock()
@@ -536,6 +550,7 @@ def test_edit_user_invalid_family_id(client):
     mock_admin_user.type = 10
     mock_admin_user.status = 1
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
 
     # 編集対象ユーザーのモック
     mock_target_user = MagicMock()
@@ -544,6 +559,7 @@ def test_edit_user_invalid_family_id(client):
     mock_target_user.type = 0
     mock_target_user.status = 1
     mock_target_user.nickname = None
+    mock_target_user.theme_color = None
 
     mock_db = MagicMock()
     mock_query = MagicMock()
@@ -579,6 +595,7 @@ def test_edit_user_invalid_status_value(client):
     mock_admin_user.type = 10
     mock_admin_user.status = 1
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
 
     # 編集対象ユーザーのモック
     mock_target_user = MagicMock()
@@ -587,6 +604,7 @@ def test_edit_user_invalid_status_value(client):
     mock_target_user.type = 0
     mock_target_user.status = 1
     mock_target_user.nickname = None
+    mock_target_user.theme_color = None
 
     mock_db = MagicMock()
     mock_query = MagicMock()
@@ -622,6 +640,7 @@ def test_edit_user_empty_username(client):
     mock_user.type = 0
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
 
     # 編集対象ユーザーのモック（自分自身）
     mock_db = MagicMock()
@@ -658,6 +677,7 @@ def test_edit_user_regular_user_type_change_forbidden(client):
     mock_user.type = 0  # 一般ユーザー
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
 
     # データベースセッションのモック
     mock_db = MagicMock()
@@ -694,6 +714,7 @@ def test_edit_user_regular_user_family_id_change_forbidden(client):
     mock_user.type = 0  # 一般ユーザー
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
 
     # データベースセッションのモック
     mock_db = MagicMock()
@@ -730,6 +751,7 @@ def test_edit_user_regular_user_status_change_forbidden(client):
     mock_user.type = 0  # 一般ユーザー
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
 
     # データベースセッションのモック
     mock_db = MagicMock()
@@ -766,6 +788,7 @@ def test_edit_user_admin_privilege_fields_success(client):
     mock_admin_user.type = 10  # 管理者
     mock_admin_user.status = 1
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
 
     # 編集対象ユーザーのモック
     mock_target_user = MagicMock()
@@ -776,6 +799,7 @@ def test_edit_user_admin_privilege_fields_success(client):
     mock_target_user.family_id = 1
     mock_target_user.status = 1
     mock_target_user.nickname = None
+    mock_target_user.theme_color = None
     mock_target_user.create_date = "2023-01-01T00:00:00"
     mock_target_user.update_date = "2023-01-01T00:00:00"
 
@@ -817,6 +841,7 @@ def test_edit_user_partial_update(client):
     mock_admin_user.type = 10
     mock_admin_user.status = 1
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
 
     # 編集対象ユーザーのモック
     mock_target_user = MagicMock()
@@ -827,6 +852,7 @@ def test_edit_user_partial_update(client):
     mock_target_user.family_id = 1
     mock_target_user.status = 1
     mock_target_user.nickname = None
+    mock_target_user.theme_color = None
     mock_target_user.create_date = "2023-01-01T00:00:00"
     mock_target_user.update_date = "2023-01-01T00:00:00"
 
@@ -870,6 +896,7 @@ def test_edit_user_password_change_and_hash(client):
     mock_user.family_id = 1
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
     mock_user.create_date = "2023-01-01T00:00:00"
     mock_user.update_date = "2023-01-01T00:00:00"
 
@@ -922,6 +949,7 @@ def test_edit_user_password_not_provided(client):
     mock_user.family_id = 1
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
     mock_user.create_date = "2023-01-01T00:00:00"
     mock_user.update_date = "2023-01-01T00:00:00"
 
@@ -970,6 +998,7 @@ def test_edit_user_disabled_user(client):
     mock_disabled_user.type = 0
     mock_disabled_user.status = 0  # 無効化されたユーザー
     mock_disabled_user.nickname = None
+    mock_disabled_user.theme_color = None
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
@@ -999,6 +1028,7 @@ def test_edit_user_invalid_id_format(client):
     mock_admin_user.type = 10
     mock_admin_user.status = 1
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
 
     # dependencies.get_current_user 関数をモック
     def mock_get_current_user():
@@ -1031,6 +1061,7 @@ def test_edit_user_empty_body(client):
     mock_user.family_id = 1
     mock_user.status = 1
     mock_user.nickname = None
+    mock_user.theme_color = None
     mock_user.create_date = "2023-01-01T00:00:00"
     mock_user.update_date = "2023-01-01T00:00:00"
 

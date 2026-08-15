@@ -104,7 +104,7 @@ export default function AdminCategory() {
         <PageHeader title="カテゴリ管理">
           <button
             onClick={handleOpenCreateModal}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+            className="bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white px-4 py-2 rounded-md text-sm font-medium"
           >
             ＋新規カテゴリ追加
           </button>
@@ -146,7 +146,7 @@ export default function AdminCategory() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <button
                           onClick={() => handleOpenEditModal(category)}
-                          className="text-indigo-600 hover:text-indigo-900"
+                          className="text-[var(--color-primary-600)] hover:text-[var(--color-primary-900)]"
                         >
                           編集
                         </button>
@@ -188,7 +188,7 @@ export default function AdminCategory() {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -203,7 +203,7 @@ export default function AdminCategory() {
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                     rows={3}
                     disabled={isSubmitting}
                   />
@@ -220,7 +220,7 @@ export default function AdminCategory() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-400"
+                    className="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md text-sm font-medium hover:bg-[var(--color-primary-700)] disabled:bg-gray-400"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "作成中..." : "作成"}
@@ -255,7 +255,7 @@ export default function AdminCategory() {
                     id="edit-name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -270,7 +270,7 @@ export default function AdminCategory() {
                     id="edit-description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                     rows={3}
                     disabled={isSubmitting}
                   />
@@ -287,7 +287,7 @@ export default function AdminCategory() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-400"
+                    className="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md text-sm font-medium hover:bg-[var(--color-primary-700)] disabled:bg-gray-400"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "更新中..." : "更新"}

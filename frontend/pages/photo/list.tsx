@@ -114,8 +114,8 @@ export default function PhotoList() {
                       border-2 transition-colors
                       ${
                         selectedCategory === "すべて"
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400 hover:bg-indigo-50"
+                          ? "bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)]"
+                          : "bg-white text-gray-700 border-gray-300 hover:border-[var(--color-primary-400)] hover:bg-[var(--color-primary-50)]"
                       }
                     `}
                   >
@@ -133,8 +133,8 @@ export default function PhotoList() {
                         border-2 transition-colors
                         ${
                           selectedCategory === String(category.id)
-                            ? "bg-indigo-600 text-white border-indigo-600"
-                            : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400 hover:bg-indigo-50"
+                            ? "bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)]"
+                            : "bg-white text-gray-700 border-gray-300 hover:border-[var(--color-primary-400)] hover:bg-[var(--color-primary-50)]"
                         }
                       `}
                     >
@@ -167,7 +167,7 @@ export default function PhotoList() {
             <div className="text-center py-8">
               <div className="inline-flex items-center">
                 <svg
-                  className="animate-spin h-5 w-5 mr-3 text-indigo-600"
+                  className="animate-spin h-5 w-5 mr-3 text-[var(--color-primary-600)]"
                   viewBox="0 0 24 24"
                   fill="none"
                 >
@@ -211,7 +211,7 @@ export default function PhotoList() {
                   console.log("手動で追加読み込みを実行");
                   loadMoreGroups();
                 }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium transition-colors"
+                className="bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white px-6 py-3 rounded-md font-medium transition-colors"
               >
                 もっと読み込む
               </button>
@@ -275,7 +275,7 @@ function GroupCard({
           <p className="text-sm text-gray-500 mt-1">
             {firstPhoto.description || "説明がありません"}
           </p>
-          <span className="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full mt-2">
+          <span className="inline-block bg-[var(--color-primary-100)] text-[var(--color-primary-800)] text-xs px-2 py-1 rounded-full mt-2">
             {formatDate(firstPhoto.create_date)}
           </span>
         </div>
@@ -306,7 +306,7 @@ function GroupCard({
         <p className="text-sm text-gray-500 mt-1">
           {firstPhoto.description || "説明がありません"}
         </p>
-        <span className="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full mt-2">
+        <span className="inline-block bg-[var(--color-primary-100)] text-[var(--color-primary-800)] text-xs px-2 py-1 rounded-full mt-2">
           {formatDate(firstPhoto.create_date)}
         </span>
       </div>

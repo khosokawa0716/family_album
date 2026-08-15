@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { userService } from "@/services/users";
 import Avatar from "@/components/Avatar";
 import { getDisplayName } from "@/utils/user";
+import { THEME_COLORS, THEME_COLOR_LABELS, THEME_PRESETS, DEFAULT_THEME_COLOR, applyThemeColor, isThemeColor, type ThemeColor } from "@/lib/theme/presets";
 
 export default function Settings() {
   const { user, checkAuth } = useAuth();
@@ -12,6 +13,9 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const [themeSaving, setThemeSaving] = useState(false);
+  const [themeError, setThemeError] = useState<string | null>(null);
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -80,6 +84,21 @@ export default function Settings() {
     }
   };
 
+  const handleThemeColorSelect = async (color: ThemeColor) => {
+    if (!user || themeSaving) return;
+    setThemeSaving(true);
+    setThemeError(null);
+    try {
+      await userService.updateUser(user.id, { theme_color: color });
+      applyThemeColor(color);
+      await checkAuth();
+    } catch {
+      setThemeError("テーマカラーの更新に失敗しました");
+    } finally {
+      setThemeSaving(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -124,14 +143,14 @@ export default function Settings() {
                   type="file"
                   accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
                   onChange={handleAvatarFileChange}
-                  className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[var(--color-primary-50)] file:text-[var(--color-primary-700)] hover:file:bg-[var(--color-primary-100)]"
                 />
                 <div className="mt-3 flex space-x-2">
                   <button
                     type="button"
                     onClick={handleAvatarUpload}
                     disabled={!avatarFile || avatarUploading}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium disabled:opacity-50"
+                    className="px-4 py-2 bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white rounded-md text-sm font-medium disabled:opacity-50"
                   >
                     {avatarUploading ? "処理中..." : "アップロード"}
                   </button>
@@ -152,6 +171,40 @@ export default function Settings() {
             {avatarError && (
               <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
                 {avatarError}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">テーマカラーの設定</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              自分の画面のボタンやリンクなどの配色を変更できます。他のユーザーの画面には影響しません。
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              {THEME_COLORS.map((color) => {
+                const selected = (isThemeColor(user?.theme_color) ? user.theme_color : DEFAULT_THEME_COLOR) === color;
+                return (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => handleThemeColorSelect(color)}
+                    disabled={themeSaving}
+                    aria-pressed={selected}
+                    aria-label={THEME_COLOR_LABELS[color]}
+                    title={THEME_COLOR_LABELS[color]}
+                    className={`w-10 h-10 rounded-full border-2 disabled:opacity-50 ${
+                      selected ? "border-gray-900" : "border-transparent"
+                    }`}
+                    style={{ backgroundColor: THEME_PRESETS[color]["600"] }}
+                  />
+                );
+              })}
+            </div>
+
+            {themeError && (
+              <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                {themeError}
               </div>
             )}
           </div>
@@ -190,7 +243,7 @@ export default function Settings() {
                     onChange={(e) => setNickname(e.target.value)}
                     maxLength={64}
                     placeholder="表示したい名前を入力"
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                   />
                 </div>
               </div>
@@ -210,7 +263,7 @@ export default function Settings() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium disabled:opacity-50"
+                  className="px-4 py-2 bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white rounded-md text-sm font-medium disabled:opacity-50"
                 >
                   {saving ? "保存中..." : "保存"}
                 </button>

@@ -61,6 +61,7 @@ def create_mock_user(user_id=1, family_id=1, user_type=0, status=1, avatar_path=
     mock_user.family_id = family_id
     mock_user.user_name = f"test_user_{user_id}"
     mock_user.nickname = None
+    mock_user.theme_color = None
     mock_user.type = user_type
     mock_user.status = status
     mock_user.avatar_path = avatar_path

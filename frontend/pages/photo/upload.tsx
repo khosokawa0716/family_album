@@ -42,7 +42,7 @@ export default function PhotoUpload() {
                   accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
                   onChange={handleFileChange}
                   multiple
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   JPEG, PNG, GIF, WEBP, HEIC, HEIF（大きい画像は自動リサイズ）
@@ -50,7 +50,7 @@ export default function PhotoUpload() {
 
                 {/* Selected files count */}
                 {selectedFiles.length > 0 && (
-                  <p className="text-sm text-indigo-600 font-medium mt-2">
+                  <p className="text-sm text-[var(--color-primary-600)] font-medium mt-2">
                     {selectedFiles.length}/5枚選択中
                   </p>
                 )}
@@ -90,7 +90,7 @@ export default function PhotoUpload() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter photo title"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                 />
               </div>
 
@@ -108,7 +108,7 @@ export default function PhotoUpload() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   placeholder="Enter photo description"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                 />
               </div>
 
@@ -121,7 +121,7 @@ export default function PhotoUpload() {
                   id="category"
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                   required
                 >
                   <option value="">Select Category</option>
@@ -138,7 +138,7 @@ export default function PhotoUpload() {
                 <button
                   type="submit"
                   disabled={isUploading || selectedFiles.length === 0 || !selectedCategory}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                  className="w-full bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] disabled:bg-gray-400 text-white px-4 py-2 rounded-md font-medium transition-colors"
                 >
                   {isUploading ? "アップロード中..." : `アップロード（${selectedFiles.length}枚）`}
                 </button>
