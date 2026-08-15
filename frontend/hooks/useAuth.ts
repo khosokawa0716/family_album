@@ -6,6 +6,7 @@ interface User {
   id: number;
   user_name: string;
   nickname: string | null;
+  avatar_path: string | null;
   email: string | null;
   type: number;
   family_id: number;

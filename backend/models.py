@@ -10,6 +10,7 @@ class User(Base):
     id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
     user_name = Column(String(64), nullable=False, unique=True)
     nickname = Column(String(64), nullable=True)
+    avatar_path = Column(String(500), nullable=True)
     password = Column(String(255), nullable=False)
     email = Column(String(255), unique=True)
     type = Column(SmallInteger, nullable=False, default=0)

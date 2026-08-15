@@ -5,6 +5,7 @@ export interface CommentResponse {
   picture_id: number;
   user_name: string;
   nickname?: string | null;
+  avatar_path?: string | null;
   create_date: string; // ISO 8601 date string
   update_date: string; // ISO 8601 date string
 }

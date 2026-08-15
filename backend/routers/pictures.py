@@ -22,7 +22,7 @@ from schemas import (
 )
 from dependencies import get_current_user
 from config.storage import get_storage_config, StorageConfig
-from utils.url_signature import verify_url_signature, get_signature_info, create_signed_url
+from utils.url_signature import verify_url_signature, get_signature_info, create_signed_url, build_avatar_url
 from utils.video_processing import (
     probe_video, strip_metadata_and_copy, extract_thumbnail_frame, VideoProcessingError
 )
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # HEIC画像サポートを有効化
 register_heif_opener()
 
-def build_picture_response_data(picture: Picture, user_name: Optional[str] = None, nickname: Optional[str] = None, signed_urls: bool = True):
+def build_picture_response_data(picture: Picture, user_name: Optional[str] = None, nickname: Optional[str] = None, avatar_path: Optional[str] = None, signed_urls: bool = True):
     """PictureResponse の共通レスポンス構造を生成する。"""
     if signed_urls:
         filename = os.path.basename(picture.file_path)
@@ -67,7 +67,8 @@ def build_picture_response_data(picture: Picture, user_name: Optional[str] = Non
         "user": {
             "id": picture.uploaded_by,
             "user_name": user_name,
-            "nickname": nickname
+            "nickname": nickname,
+            "avatar_path": build_avatar_url(avatar_path)
         } if user_name else None
     }
 
@@ -100,7 +101,7 @@ def get_pictures(
     """
 
     # 基本クエリ: 自分の家族の有効な写真のみ
-    query = db.query(Picture, User.user_name, User.nickname).outerjoin(User, Picture.uploaded_by == User.id).filter(
+    query = db.query(Picture, User.user_name, User.nickname, User.avatar_path).outerjoin(User, Picture.uploaded_by == User.id).filter(
         and_(
             Picture.family_id == current_user.family_id,
             Picture.status == 1
@@ -173,8 +174,8 @@ def get_pictures(
 
     # 署名付きURLを生成するため、レスポンス用のデータを作成
     picture_responses = []
-    for picture, user_name, nickname in pictures:
-        picture_responses.append(build_picture_response_data(picture, user_name, nickname, signed_urls=True))
+    for picture, user_name, nickname, avatar_path in pictures:
+        picture_responses.append(build_picture_response_data(picture, user_name, nickname, avatar_path, signed_urls=True))
 
     # 次ページ存在判定
     has_more = (offset + limit) < total
@@ -221,7 +222,7 @@ def get_deleted_pictures(
         raise HTTPException(status_code=403, detail="Admin access required")
 
     # 基本クエリ: 自分の家族の削除済み写真のみ
-    query = db.query(Picture, User.user_name, User.nickname).outerjoin(User, Picture.uploaded_by == User.id).filter(
+    query = db.query(Picture, User.user_name, User.nickname, User.avatar_path).outerjoin(User, Picture.uploaded_by == User.id).filter(
         and_(
             Picture.family_id == current_user.family_id,
             Picture.status == 0
@@ -239,8 +240,8 @@ def get_deleted_pictures(
 
     # 署名付きURLを生成するため、レスポンス用のデータを作成
     picture_responses = []
-    for picture, user_name, nickname in pictures:
-        picture_responses.append(build_picture_response_data(picture, user_name, nickname, signed_urls=True))
+    for picture, user_name, nickname, avatar_path in pictures:
+        picture_responses.append(build_picture_response_data(picture, user_name, nickname, avatar_path, signed_urls=True))
 
     # 次ページ存在判定
     has_more = (offset + limit) < total
@@ -360,7 +361,7 @@ def get_picture_groups(
         )
 
     # クエリ2: グループ内の全写真取得
-    pictures_with_users = db.query(Picture, User.user_name, User.nickname).outerjoin(
+    pictures_with_users = db.query(Picture, User.user_name, User.nickname, User.avatar_path).outerjoin(
         User, Picture.uploaded_by == User.id
     ).filter(
         and_(
@@ -372,11 +373,11 @@ def get_picture_groups(
 
     # group_id でグルーピング
     groups_dict = {}
-    for picture, user_name, nickname in pictures_with_users:
+    for picture, user_name, nickname, avatar_path in pictures_with_users:
         if picture.group_id not in groups_dict:
             groups_dict[picture.group_id] = []
         groups_dict[picture.group_id].append(
-            build_picture_response_data(picture, user_name, nickname, signed_urls=True)
+            build_picture_response_data(picture, user_name, nickname, avatar_path, signed_urls=True)
         )
 
     # ページネーション順を維持してレスポンス構築
@@ -412,7 +413,7 @@ def get_picture_group_detail(
     家族スコープでのアクセス制御あり。
     """
 
-    pictures_with_users = db.query(Picture, User.user_name, User.nickname).outerjoin(
+    pictures_with_users = db.query(Picture, User.user_name, User.nickname, User.avatar_path).outerjoin(
         User, Picture.uploaded_by == User.id
     ).filter(
         and_(
@@ -426,8 +427,8 @@ def get_picture_group_detail(
         raise HTTPException(status_code=404, detail="Photo group not found")
 
     picture_responses = [
-        build_picture_response_data(p, uname, unickname, signed_urls=True)
-        for p, uname, unickname in pictures_with_users
+        build_picture_response_data(p, uname, unickname, uavatar, signed_urls=True)
+        for p, uname, unickname, uavatar in pictures_with_users
     ]
 
     return PictureGroupResponse(
@@ -463,7 +464,7 @@ def get_picture_detail(
     """
 
     # 家族スコープでの写真取得（削除済みは除外）
-    picture_with_user = db.query(Picture, User.user_name, User.nickname).outerjoin(
+    picture_with_user = db.query(Picture, User.user_name, User.nickname, User.avatar_path).outerjoin(
         User, Picture.uploaded_by == User.id
     ).filter(
         and_(
@@ -476,8 +477,8 @@ def get_picture_detail(
     if not picture_with_user:
         raise HTTPException(status_code=404, detail="Picture not found")
 
-    picture, user_name, nickname = picture_with_user
-    return build_picture_response_data(picture, user_name, nickname, signed_urls=True)
+    picture, user_name, nickname, avatar_path = picture_with_user
+    return build_picture_response_data(picture, user_name, nickname, avatar_path, signed_urls=True)
 
 
 async def process_and_save_image(
@@ -803,7 +804,7 @@ async def upload_picture(
 
     # 6. レスポンス生成
     picture_responses = [
-        build_picture_response_data(p, current_user.user_name, current_user.nickname, signed_urls=False)
+        build_picture_response_data(p, current_user.user_name, current_user.nickname, current_user.avatar_path, signed_urls=False)
         for p in pictures
     ]
 
@@ -1078,7 +1079,7 @@ async def upload_video(
                     logger.error(f"Failed to cleanup file {path}: {cleanup_error}")
         raise HTTPException(status_code=500, detail="Failed to save video information")
 
-    picture_response = build_picture_response_data(picture, current_user.user_name, current_user.nickname, signed_urls=False)
+    picture_response = build_picture_response_data(picture, current_user.user_name, current_user.nickname, current_user.avatar_path, signed_urls=False)
 
     return PictureUploadResponse(
         group_id=group_id,
@@ -1144,9 +1145,9 @@ def update_picture(
         db.refresh(picture)
 
         logger.info(f"Picture updated: ID={picture_id}, User={current_user.id}")
-        uploader = db.query(User.user_name, User.nickname).filter(User.id == picture.uploaded_by).first()
-        uploader_name, uploader_nickname = uploader if uploader else (None, None)
-        return build_picture_response_data(picture, uploader_name, uploader_nickname, signed_urls=False)
+        uploader = db.query(User.user_name, User.nickname, User.avatar_path).filter(User.id == picture.uploaded_by).first()
+        uploader_name, uploader_nickname, uploader_avatar = uploader if uploader else (None, None, None)
+        return build_picture_response_data(picture, uploader_name, uploader_nickname, uploader_avatar, signed_urls=False)
 
     except Exception as e:
         logger.error(f"Failed to update picture {picture_id}: {e}")

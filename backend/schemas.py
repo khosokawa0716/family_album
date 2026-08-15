@@ -79,6 +79,7 @@ class UserResponse(BaseModel):
     id: int
     user_name: str
     nickname: Optional[str] = None
+    avatar_path: Optional[str] = None
     email: Optional[str]
     type: int
     family_id: int
@@ -167,6 +168,7 @@ class PictureUserResponse(BaseModel):
     id: int
     user_name: str
     nickname: Optional[str] = None
+    avatar_path: Optional[str] = None
 
 
 class PictureResponse(BaseModel):
@@ -293,6 +295,7 @@ class CommentResponse(BaseModel):
     picture_id: int
     user_name: str
     nickname: Optional[str] = None
+    avatar_path: Optional[str] = None
     create_date: datetime
     update_date: datetime
 
@@ -303,6 +306,8 @@ class CommentResponse(BaseModel):
         """
         Comment オブジェクトから CommentResponse を作成する
         """
+        from utils.url_signature import build_avatar_url
+
         return cls(
             id=comment.id,
             content=comment.content,
@@ -310,6 +315,7 @@ class CommentResponse(BaseModel):
             picture_id=comment.picture_id,
             user_name=comment.user.user_name,
             nickname=comment.user.nickname,
+            avatar_path=build_avatar_url(comment.user.avatar_path),
             create_date=comment.create_date,
             update_date=comment.update_date
         )
