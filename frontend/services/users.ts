@@ -22,4 +22,14 @@ export const userService = {
   async deleteUser(userId: number): Promise<UserDeleteResponse> {
     return apiClient.delete<UserDeleteResponse>(`/users/${userId}`);
   },
+
+  async uploadAvatar(userId: number, file: File): Promise<UserResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient.postFormData<UserResponse>(`/users/${userId}/avatar`, formData);
+  },
+
+  async deleteAvatar(userId: number): Promise<UserResponse> {
+    return apiClient.delete<UserResponse>(`/users/${userId}/avatar`);
+  },
 };

@@ -9,6 +9,7 @@ from database import get_db
 from models import Picture, User, Comment
 from schemas import CommentResponse, CommentCreateRequest, CommentUpdateRequest
 from dependencies import get_current_user
+from utils.url_signature import build_avatar_url
 
 router = APIRouter(prefix="/api", tags=["comments"])
 logger = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ def get_picture_comments(
             picture_id=comment.picture_id,
             user_name=comment.user.user_name,
             nickname=comment.user.nickname,
+            avatar_path=build_avatar_url(comment.user.avatar_path),
             create_date=comment.create_date,
             update_date=comment.update_date
         )

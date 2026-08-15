@@ -7,6 +7,7 @@ import { formatDate } from "@/utils/date";
 import { getDisplayName } from "@/utils/user";
 import PageHeader from "@/components/PageHeader";
 import { AuthGuard } from "@/components/AuthGuard";
+import Avatar from "@/components/Avatar";
 import { PictureGroupResponse } from "@/types/pictures";
 
 const isVideo = (mimeType: string | null) => !!mimeType?.startsWith("video/");
@@ -260,9 +261,17 @@ function GroupCard({
         </div>
         <div className="p-3 sm:p-4">
           <h3 className="text-lg font-medium text-gray-900">{firstPhoto.title || "無題"}</h3>
-          <p className="text-xs text-gray-500 mt-1">
-            投稿者: {getDisplayName(firstPhoto.user?.user_name, firstPhoto.user?.nickname)}
-          </p>
+          <div className="flex items-center space-x-1.5 mt-1">
+            <Avatar
+              avatarPath={firstPhoto.user?.avatar_path}
+              displayName={getDisplayName(firstPhoto.user?.user_name, firstPhoto.user?.nickname)}
+              seed={firstPhoto.user?.id ?? "user"}
+              size={18}
+            />
+            <p className="text-xs text-gray-500">
+              投稿者: {getDisplayName(firstPhoto.user?.user_name, firstPhoto.user?.nickname)}
+            </p>
+          </div>
           <p className="text-sm text-gray-500 mt-1">
             {firstPhoto.description || "説明がありません"}
           </p>
@@ -283,9 +292,17 @@ function GroupCard({
       <ImageSlider group={group} />
       <div className="p-3 sm:p-4">
         <h3 className="text-lg font-medium text-gray-900">{firstPhoto.title || "無題"}</h3>
-        <p className="text-xs text-gray-500 mt-1">
-          投稿者: {firstPhoto.user?.user_name || "不明"}
-        </p>
+        <div className="flex items-center space-x-1.5 mt-1">
+          <Avatar
+            avatarPath={firstPhoto.user?.avatar_path}
+            displayName={getDisplayName(firstPhoto.user?.user_name, firstPhoto.user?.nickname)}
+            seed={firstPhoto.user?.id ?? "user"}
+            size={18}
+          />
+          <p className="text-xs text-gray-500">
+            投稿者: {getDisplayName(firstPhoto.user?.user_name, firstPhoto.user?.nickname)}
+          </p>
+        </div>
         <p className="text-sm text-gray-500 mt-1">
           {firstPhoto.description || "説明がありません"}
         </p>

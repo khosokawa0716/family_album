@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Image, LogOut, Settings, Upload, Video } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getDisplayName } from "@/utils/user";
+import Avatar from "@/components/Avatar";
 
 interface PageHeaderProps {
   title: string;
@@ -56,6 +57,12 @@ export default function PageHeader({ title, children }: PageHeaderProps) {
             {children}
             {user && (
               <div className="flex items-center space-x-2 sm:space-x-3">
+                <Avatar
+                  avatarPath={user.avatar_path}
+                  displayName={getDisplayName(user.user_name, user.nickname)}
+                  seed={user.id}
+                  size={28}
+                />
                 <span className="hidden sm:inline text-sm text-gray-600">
                   {getDisplayName(user.user_name, user.nickname)}
                 </span>

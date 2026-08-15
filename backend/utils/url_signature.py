@@ -33,7 +33,7 @@ def create_signed_url(filename: str, endpoint_type: str = "thumbnails", expires_
 
     Args:
         filename: ファイル名（例: "thumb_image.jpg"）
-        endpoint_type: エンドポイントタイプ（"thumbnails" または "photos"）
+        endpoint_type: エンドポイントタイプ（"thumbnails", "photos" または "avatars"）
         expires_in: 有効期限（秒）。デフォルト30分
 
     Returns:
@@ -42,8 +42,8 @@ def create_signed_url(filename: str, endpoint_type: str = "thumbnails", expires_
     Raises:
         ValueError: 無効なendpoint_typeが指定された場合
     """
-    if endpoint_type not in ["thumbnails", "photos"]:
-        raise ValueError("endpoint_type must be 'thumbnails' or 'photos'")
+    if endpoint_type not in ["thumbnails", "photos", "avatars"]:
+        raise ValueError("endpoint_type must be 'thumbnails', 'photos' or 'avatars'")
 
     # 有効期限のタイムスタンプ（UNIX時間）
     expires = int(time.time()) + expires_in
@@ -70,7 +70,7 @@ def verify_url_signature(filename: str, endpoint_type: str, signature: str, expi
 
     Args:
         filename: ファイル名
-        endpoint_type: エンドポイントタイプ（"thumbnails" または "photos"）
+        endpoint_type: エンドポイントタイプ（"thumbnails", "photos" または "avatars"）
         signature: 提供された署名
         expires: 有効期限のタイムスタンプ
 
@@ -133,3 +133,21 @@ def get_signature_info(signature: Optional[str], expires: Optional[str]) -> tupl
         return signature, expires_int
     except ValueError:
         return None, None
+
+
+def build_avatar_url(avatar_path: Optional[str], expires_in: int = 86400) -> Optional[str]:
+    """
+    保存済みのavatar_pathから署名付き配信URLを生成する
+
+    Args:
+        avatar_path: DBに保存されているアバター画像の相対パス（例: "avatars/xxxx.jpg"）
+        expires_in: 有効期限（秒）。一覧・コメント等に頻出表示されるため長め（デフォルト24時間）
+
+    Returns:
+        Optional[str]: 署名付きURL。avatar_pathが未設定の場合はNone
+    """
+    if not avatar_path or not isinstance(avatar_path, str):
+        return None
+
+    filename = avatar_path.rsplit("/", 1)[-1]
+    return create_signed_url(filename, "avatars", expires_in=expires_in)

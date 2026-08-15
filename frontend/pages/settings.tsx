@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuth } from "@/hooks/useAuth";
 import { userService } from "@/services/users";
+import Avatar from "@/components/Avatar";
+import { getDisplayName } from "@/utils/user";
 
 export default function Settings() {
   const { user, checkAuth } = useAuth();
@@ -11,11 +13,72 @@ export default function Settings() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (user) {
       setNickname(user.nickname || "");
     }
   }, [user]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarError(null);
+    setAvatarFile(file);
+    setAvatarPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!user || !avatarFile) return;
+    setAvatarUploading(true);
+    setAvatarError(null);
+    try {
+      await userService.uploadAvatar(user.id, avatarFile);
+      await checkAuth();
+      setAvatarFile(null);
+      setAvatarPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch {
+      setAvatarError("プロフィール画像のアップロードに失敗しました");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleAvatarDelete = async () => {
+    if (!user) return;
+    setAvatarUploading(true);
+    setAvatarError(null);
+    try {
+      await userService.deleteAvatar(user.id);
+      await checkAuth();
+    } catch {
+      setAvatarError("プロフィール画像の削除に失敗しました");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +104,58 @@ export default function Settings() {
       <div className="min-h-screen bg-gray-50">
         <PageHeader title="設定" />
 
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">プロフィール画像の設定</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              投稿者表示やコメント欄に表示されるプロフィール画像を設定できます。未設定の場合はイニシャルが表示されます。
+            </p>
+
+            <div className="flex items-center space-x-4">
+              <Avatar
+                avatarPath={avatarPreview || user?.avatar_path}
+                displayName={getDisplayName(user?.user_name, user?.nickname)}
+                seed={user?.id ?? "user"}
+                size={64}
+              />
+              <div className="flex-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                  onChange={handleAvatarFileChange}
+                  className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                />
+                <div className="mt-3 flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={handleAvatarUpload}
+                    disabled={!avatarFile || avatarUploading}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium disabled:opacity-50"
+                  >
+                    {avatarUploading ? "処理中..." : "アップロード"}
+                  </button>
+                  {user?.avatar_path && (
+                    <button
+                      type="button"
+                      onClick={handleAvatarDelete}
+                      disabled={avatarUploading}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm font-medium disabled:opacity-50"
+                    >
+                      削除
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {avatarError && (
+              <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                {avatarError}
+              </div>
+            )}
+          </div>
+
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-1">表示名の設定</h2>
             <p className="text-sm text-gray-500 mb-4">

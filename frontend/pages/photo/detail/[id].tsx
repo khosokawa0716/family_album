@@ -8,6 +8,7 @@ import { getDisplayName } from "@/utils/user";
 import PageHeader from "@/components/PageHeader";
 import PhotoModal from "@/components/PhotoModal";
 import { AuthGuard } from "@/components/AuthGuard";
+import Avatar from "@/components/Avatar";
 import { PictureResponse } from "@/types/pictures";
 
 export default function PhotoDetail() {
@@ -197,9 +198,17 @@ export default function PhotoDetail() {
                 {firstPhoto.title && (
                   <h2 className="text-xl font-bold text-gray-900 mb-2">{firstPhoto.title}</h2>
                 )}
-                <p className="text-sm text-gray-500 mb-1">
-                  投稿者: {getDisplayName(firstPhoto.user?.user_name, firstPhoto.user?.nickname)}
-                </p>
+                <div className="flex items-center space-x-2 mb-1">
+                  <Avatar
+                    avatarPath={firstPhoto.user?.avatar_path}
+                    displayName={getDisplayName(firstPhoto.user?.user_name, firstPhoto.user?.nickname)}
+                    seed={firstPhoto.user?.id ?? "user"}
+                    size={22}
+                  />
+                  <p className="text-sm text-gray-500">
+                    投稿者: {getDisplayName(firstPhoto.user?.user_name, firstPhoto.user?.nickname)}
+                  </p>
+                </div>
                 {isMultiple && (
                   <p className="text-sm text-gray-500 mb-1">{photos.length}枚の写真</p>
                 )}
@@ -290,9 +299,17 @@ export default function PhotoDetail() {
                     ) : (
                       <div>
                         <div className="flex items-start justify-between mb-2">
-                          <p className="font-medium text-gray-900">
-                            {getDisplayName(comment.user_name, comment.nickname)}
-                          </p>
+                          <div className="flex items-center space-x-2">
+                            <Avatar
+                              avatarPath={comment.avatar_path}
+                              displayName={getDisplayName(comment.user_name, comment.nickname)}
+                              seed={comment.user_id}
+                              size={22}
+                            />
+                            <p className="font-medium text-gray-900">
+                              {getDisplayName(comment.user_name, comment.nickname)}
+                            </p>
+                          </div>
                           {user?.id === comment.user_id && (
                             <div className="flex gap-2">
                               <button

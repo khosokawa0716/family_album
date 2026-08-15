@@ -21,12 +21,14 @@ class StorageConfig:
         self.environment = os.getenv("ENVIRONMENT", "development")
         self.photos_path = Path(os.getenv("PHOTOS_STORAGE_PATH", "./storage/photos"))
         self.thumbnails_path = Path(os.getenv("THUMBNAILS_STORAGE_PATH", "./storage/thumbnails"))
+        self.avatars_path = Path(os.getenv("AVATARS_STORAGE_PATH", "./storage/avatars"))
         self.auto_create_dirs = os.getenv("AUTO_CREATE_DIRS", "true").lower() == "true"
         self.max_upload_size = int(os.getenv("MAX_UPLOAD_SIZE", "20971520"))  # 20MB
         self.allowed_image_types = self._parse_allowed_types()
         self.max_video_size = int(os.getenv("MAX_VIDEO_SIZE", "104857600"))  # 100MB
         self.max_video_duration_seconds = int(os.getenv("MAX_VIDEO_DURATION_SECONDS", "30"))
         self.allowed_video_types = self._parse_allowed_video_types()
+        self.max_avatar_upload_size = int(os.getenv("MAX_AVATAR_UPLOAD_SIZE", "5242880"))  # 5MB
 
         # 初期化時にディレクトリを作成
         if self.auto_create_dirs:
@@ -44,7 +46,7 @@ class StorageConfig:
 
     def _ensure_directories_exist(self):
         """必要なディレクトリが存在することを確認し、なければ作成"""
-        directories = [self.photos_path, self.thumbnails_path]
+        directories = [self.photos_path, self.thumbnails_path, self.avatars_path]
 
         for directory in directories:
             try:
@@ -70,6 +72,14 @@ class StorageConfig:
         """指定ファイル名のサムネイル保存パスを取得"""
         return self.thumbnails_path / filename
 
+    def get_avatars_path(self) -> Path:
+        """アバター画像保存パスを取得"""
+        return self.avatars_path
+
+    def get_avatar_file_path(self, filename: str) -> Path:
+        """指定ファイル名のアバター画像保存パスを取得"""
+        return self.avatars_path / filename
+
     def is_allowed_image_type(self, mime_type: str) -> bool:
         """許可されている画像タイプかチェック"""
         return mime_type in self.allowed_image_types
@@ -90,17 +100,23 @@ class StorageConfig:
         """動画の長さが制限内かチェック"""
         return duration_seconds <= self.max_video_duration_seconds
 
+    def is_valid_avatar_size(self, file_size: int) -> bool:
+        """アバター画像のファイルサイズが制限内かチェック"""
+        return file_size <= self.max_avatar_upload_size
+
     def get_storage_info(self) -> dict:
         """ストレージ設定情報を辞書で返す"""
         return {
             "environment": self.environment,
             "photos_path": str(self.photos_path),
             "thumbnails_path": str(self.thumbnails_path),
+            "avatars_path": str(self.avatars_path),
             "max_upload_size": self.max_upload_size,
             "allowed_image_types": self.allowed_image_types,
             "max_video_size": self.max_video_size,
             "max_video_duration_seconds": self.max_video_duration_seconds,
             "allowed_video_types": self.allowed_video_types,
+            "max_avatar_upload_size": self.max_avatar_upload_size,
             "auto_create_dirs": self.auto_create_dirs
         }
 
