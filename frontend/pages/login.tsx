@@ -10,11 +10,19 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  // redirectパラメータ（LINE通知の詳細ページリンク等から未ログインで遷移してきた場合の戻り先）
+  // オープンリダイレクト対策として "/" で始まるパス以外は無視する
+  const redirectParam = String(router.query.redirect ?? "");
+  const redirectTo =
+    redirectParam.startsWith("/") && !redirectParam.startsWith("/login")
+      ? redirectParam
+      : "/photo/list";
+
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push("/photo/list");
+      router.push(redirectTo);
     }
-  }, [isAuthenticated, authLoading, router]);
+  }, [isAuthenticated, authLoading, router, redirectTo]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -26,7 +34,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await login({ user_name: username, password });
+    await login({ user_name: username, password }, redirectTo);
   };
 
   if (authLoading) {

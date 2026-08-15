@@ -1,5 +1,10 @@
 const DEFAULT_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
 
+function redirectToLogin(): void {
+  const current = `${window.location.pathname}${window.location.search}`;
+  window.location.href = `/login?redirect=${encodeURIComponent(current)}`;
+}
+
 class ApiError extends Error {
   public status: number;
   public statusText: string;
@@ -21,7 +26,7 @@ class ApiClient {
 
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const token = sessionStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token");
     const response = await globalThis.fetch(url, {
       headers: {
         "Content-Type": "application/json",
@@ -34,7 +39,7 @@ class ApiClient {
     if (!response.ok) {
       if (response.status === 401) {
         // 未認証、トークンが無効または期限切れの場合、ログインページにリダイレクト
-        window.location.href = "/login";
+        redirectToLogin();
         return Promise.reject(new ApiError("Unauthorized", 401, "Unauthorized"));
       }
       throw new ApiError(
@@ -83,7 +88,7 @@ class ApiClient {
 
   async postFormData<T>(endpoint: string, formData: FormData): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const token = sessionStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token");
 
     const response = await globalThis.fetch(url, {
       method: "POST",
@@ -96,7 +101,7 @@ class ApiClient {
 
     if (!response.ok) {
       if (response.status === 401) {
-        window.location.href = "/login";
+        redirectToLogin();
         return Promise.reject(new ApiError("Unauthorized", 401, "Unauthorized"));
       }
       throw new ApiError(
@@ -111,7 +116,7 @@ class ApiClient {
 
   async downloadBlob(endpoint: string): Promise<Blob> {
     const url = `${this.baseUrl}${endpoint}`;
-    const token = sessionStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token");
 
     const response = await globalThis.fetch(url, {
       method: "GET",
@@ -122,7 +127,7 @@ class ApiClient {
 
     if (!response.ok) {
       if (response.status === 401) {
-        window.location.href = "/login";
+        redirectToLogin();
         return Promise.reject(new ApiError("Unauthorized", 401, "Unauthorized"));
       }
       throw new ApiError(

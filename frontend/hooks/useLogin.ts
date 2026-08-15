@@ -29,7 +29,7 @@ export const useLogin = () => {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const login = async (loginData: LoginRequest) => {
+  const login = async (loginData: LoginRequest, redirectTo?: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -38,12 +38,12 @@ export const useLogin = () => {
       if (!data.access_token) {
         throw new Error("ログインに失敗しました");
       }
-      // トークンをセッションストレージに保存
-      sessionStorage.setItem("access_token", data.access_token);
-      sessionStorage.setItem("user", JSON.stringify(data.user));
+      // トークンをローカルストレージに保存（タブ・別ブラウザ起動をまたいでログイン状態を維持するため）
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
-      // 写真一覧ページに遷移
-      router.push("/photo/list");
+      // 指定があれば元のページへ、なければ写真一覧ページに遷移
+      router.push(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/photo/list");
     } catch (err) {
       setError(err instanceof Error ? err.message : "ログインに失敗しました");
     } finally {
@@ -52,8 +52,8 @@ export const useLogin = () => {
   };
 
   const logout = () => {
-    sessionStorage.removeItem("access_token");
-    sessionStorage.removeItem("user");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
     router.push("/login");
   };
 

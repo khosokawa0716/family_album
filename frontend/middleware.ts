@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("access_token")?.value;
 
   // トークンがない場合、ログインページにリダイレクト
-  // 注意: sessionStorageベースの認証では、middlewareでの完全な認証チェックは制限される
+  // 注意: localStorageベースの認証では、middlewareでの完全な認証チェックは制限される
   // 実際の認証チェックは各ページコンポーネントで行う
   if (!token && pathname !== "/login") {
     // 静的ファイルやAPIルートは除外
