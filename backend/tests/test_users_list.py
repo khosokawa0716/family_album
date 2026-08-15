@@ -239,6 +239,7 @@ def test_get_users_response_format(client):
     mock_user1.id = 1
     mock_user1.user_name = "admin_user"
     mock_user1.nickname = None
+    mock_user1.theme_color = None
     mock_user1.email = "admin@example.com"
     mock_user1.type = 10
     mock_user1.family_id = 1
@@ -250,6 +251,7 @@ def test_get_users_response_format(client):
     mock_user2.id = 2
     mock_user2.user_name = "regular_user"
     mock_user2.nickname = None
+    mock_user2.theme_color = None
     mock_user2.email = "user@example.com"
     mock_user2.type = 0
     mock_user2.family_id = 1
@@ -370,6 +372,7 @@ def test_get_users_includes_disabled_users(client):
     mock_active_user.id = 2
     mock_active_user.user_name = "active_user"
     mock_active_user.nickname = None
+    mock_active_user.theme_color = None
     mock_active_user.email = "active@example.com"
     mock_active_user.type = 0
     mock_active_user.family_id = 1
@@ -381,6 +384,7 @@ def test_get_users_includes_disabled_users(client):
     mock_disabled_user.id = 3
     mock_disabled_user.user_name = "disabled_user"
     mock_disabled_user.nickname = None
+    mock_disabled_user.theme_color = None
     mock_disabled_user.email = "disabled@example.com"
     mock_disabled_user.type = 0
     mock_disabled_user.family_id = 1
@@ -432,6 +436,7 @@ def test_get_users_family_scope(client):
     mock_admin_user.id = 1
     mock_admin_user.user_name = "admin_user"
     mock_admin_user.nickname = None
+    mock_admin_user.theme_color = None
     mock_admin_user.email = "admin@example.com"
     mock_admin_user.type = 10
     mock_admin_user.family_id = 1
@@ -444,6 +449,7 @@ def test_get_users_family_scope(client):
     mock_same_family_user.id = 2
     mock_same_family_user.user_name = "same_family_user"
     mock_same_family_user.nickname = None
+    mock_same_family_user.theme_color = None
     mock_same_family_user.email = "same@example.com"
     mock_same_family_user.type = 0
     mock_same_family_user.family_id = 1

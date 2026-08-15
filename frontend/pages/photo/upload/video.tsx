@@ -41,7 +41,7 @@ export default function VideoUpload() {
                   id="file"
                   accept="video/mp4,video/quicktime"
                   onChange={handleFileChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   MP4, MOV（30秒以内・100MB以下）
@@ -78,7 +78,7 @@ export default function VideoUpload() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter video title"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                 />
               </div>
 
@@ -96,7 +96,7 @@ export default function VideoUpload() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   placeholder="Enter video description"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                 />
               </div>
 
@@ -109,7 +109,7 @@ export default function VideoUpload() {
                   id="category"
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                   required
                 >
                   <option value="">Select Category</option>
@@ -126,7 +126,7 @@ export default function VideoUpload() {
                 <button
                   type="submit"
                   disabled={isUploading || !selectedFile || !selectedCategory}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                  className="w-full bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] disabled:bg-gray-400 text-white px-4 py-2 rounded-md font-medium transition-colors"
                 >
                   {isUploading ? "アップロード中..." : "アップロード"}
                 </button>

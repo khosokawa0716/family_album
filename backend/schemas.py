@@ -2,6 +2,10 @@ from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 from typing import Optional
 from datetime import datetime
 
+# ユーザーが選択できるテーマカラーのプリセット一覧。
+# frontend/lib/theme/presets.ts のTHEME_COLORSと一致させること。
+ALLOWED_THEME_COLORS = {"indigo", "blue", "emerald", "rose", "amber", "violet"}
+
 class UserCreate(BaseModel):
     user_name: str
     password: str
@@ -12,6 +16,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     user_name: Optional[str] = None
     nickname: Optional[str] = None
+    theme_color: Optional[str] = None
     password: Optional[str] = None
     email: Optional[str] = None
     type: Optional[int] = None
@@ -33,6 +38,13 @@ class UserUpdate(BaseModel):
         if v is not None and len(v) > 64:
             raise ValueError('Nickname must be 64 characters or less')
         return v.strip() if v is not None else v
+
+    @field_validator('theme_color')
+    @classmethod
+    def validate_theme_color(cls, v):
+        if v is not None and v not in ALLOWED_THEME_COLORS:
+            raise ValueError(f"theme_color must be one of {sorted(ALLOWED_THEME_COLORS)}")
+        return v
 
     @field_validator('password')
     @classmethod
@@ -79,6 +91,7 @@ class UserResponse(BaseModel):
     id: int
     user_name: str
     nickname: Optional[str] = None
+    theme_color: Optional[str] = None
     avatar_path: Optional[str] = None
     email: Optional[str]
     type: int

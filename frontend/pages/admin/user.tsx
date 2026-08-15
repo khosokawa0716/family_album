@@ -117,7 +117,7 @@ export default function AdminUser() {
         <PageHeader title="ユーザー管理">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+            className="bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white px-4 py-2 rounded-md text-sm font-medium"
           >
             ＋新規ユーザー追加
           </button>
@@ -172,7 +172,7 @@ export default function AdminUser() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                         <button
                           onClick={() => openEditModal(user.id)}
-                          className="text-indigo-600 hover:text-indigo-900"
+                          className="text-[var(--color-primary-600)] hover:text-[var(--color-primary-900)]"
                         >
                           編集
                         </button>
@@ -214,7 +214,7 @@ export default function AdminUser() {
                       type="text"
                       value={createForm.user_name}
                       onChange={(e) => setCreateForm({ ...createForm, user_name: e.target.value })}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                       required
                     />
                   </div>
@@ -230,7 +230,7 @@ export default function AdminUser() {
                       type="password"
                       value={createForm.password}
                       onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                       required
                     />
                   </div>
@@ -246,7 +246,7 @@ export default function AdminUser() {
                       type="email"
                       value={createForm.email}
                       onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                     />
                   </div>
                   <div>
@@ -262,7 +262,7 @@ export default function AdminUser() {
                       onChange={(e) =>
                         setCreateForm({ ...createForm, type: Number(e.target.value) })
                       }
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                     >
                       <option value={0}>一般</option>
                       <option value={10}>管理者</option>
@@ -282,7 +282,7 @@ export default function AdminUser() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium"
+                    className="px-4 py-2 bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white rounded-md text-sm font-medium"
                   >
                     作成
                   </button>
@@ -314,7 +314,7 @@ export default function AdminUser() {
                       type="text"
                       value={editForm.user_name}
                       onChange={(e) => setEditForm({ ...editForm, user_name: e.target.value })}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                       required
                     />
                   </div>
@@ -330,7 +330,7 @@ export default function AdminUser() {
                       type="email"
                       value={editForm.email}
                       onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                     />
                   </div>
                   <div>
@@ -344,7 +344,7 @@ export default function AdminUser() {
                       id="edit-type"
                       value={editForm.type}
                       onChange={(e) => setEditForm({ ...editForm, type: Number(e.target.value) })}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                     >
                       <option value={0}>一般</option>
                       <option value={10}>管理者</option>
@@ -361,7 +361,7 @@ export default function AdminUser() {
                       id="edit-status"
                       value={editForm.status}
                       onChange={(e) => setEditForm({ ...editForm, status: Number(e.target.value) })}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                       disabled
                     >
                       <option value={1}>有効</option>
@@ -385,7 +385,7 @@ export default function AdminUser() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium"
+                    className="px-4 py-2 bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white rounded-md text-sm font-medium"
                   >
                     更新
                   </button>

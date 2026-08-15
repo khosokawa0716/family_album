@@ -105,7 +105,7 @@ export default function PhotoDetail() {
                     key={photo.id}
                     className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${
                       selectedPhoto?.id === photo.id
-                        ? "border-indigo-500"
+                        ? "border-[var(--color-primary-500)]"
                         : "border-transparent hover:border-gray-300"
                     }`}
                     onClick={() => setSelectedPhoto(photo)}
@@ -116,7 +116,7 @@ export default function PhotoDetail() {
                       className="w-full h-48 object-cover hover:opacity-90 transition-opacity"
                     />
                     {selectedPhoto?.id === photo.id && (
-                      <div className="absolute top-1 left-1 bg-indigo-500 text-white text-xs px-1.5 py-0.5 rounded">
+                      <div className="absolute top-1 left-1 bg-[var(--color-primary-500)] text-white text-xs px-1.5 py-0.5 rounded">
                         選択中
                       </div>
                     )}
@@ -164,7 +164,7 @@ export default function PhotoDetail() {
                     type="text"
                     value={editingTitle}
                     onChange={(e) => setEditingTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                     placeholder="タイトルを入力"
                   />
                 </div>
@@ -174,14 +174,14 @@ export default function PhotoDetail() {
                     value={editingDescription}
                     onChange={(e) => setEditingDescription(e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
                     placeholder="説明を入力"
                   />
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={handleUpdatePhoto}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                    className="bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white px-4 py-2 rounded-md text-sm font-medium"
                   >
                     保存
                   </button>
@@ -231,7 +231,7 @@ export default function PhotoDetail() {
             <div className="flex gap-3">
               <button
                 onClick={handleDownloadPhoto}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white px-4 py-2 rounded-md text-sm font-medium"
               >
                 {isMultiple && selectedPhoto
                   ? "選択中の写真をダウンロード"
@@ -278,13 +278,13 @@ export default function PhotoDetail() {
                         <textarea
                           value={editingContent}
                           onChange={(e) => setEditingContent(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 mb-2"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] mb-2"
                           rows={3}
                         />
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleUpdateComment(comment.id)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-md text-sm"
+                            className="bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white px-3 py-1 rounded-md text-sm"
                           >
                             保存
                           </button>
@@ -314,7 +314,7 @@ export default function PhotoDetail() {
                             <div className="flex gap-2">
                               <button
                                 onClick={() => startEditComment(comment)}
-                                className="text-indigo-600 hover:text-indigo-800 text-sm"
+                                className="text-[var(--color-primary-600)] hover:text-[var(--color-primary-800)] text-sm"
                               >
                                 編集
                               </button>
@@ -344,12 +344,12 @@ export default function PhotoDetail() {
                 value={commentContent}
                 onChange={(e) => setCommentContent(e.target.value)}
                 placeholder="コメントを入力..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 mb-2"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] mb-2"
                 rows={3}
               />
               <button
                 onClick={handlePostComment}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white px-4 py-2 rounded-md text-sm font-medium"
               >
                 投稿
               </button>
