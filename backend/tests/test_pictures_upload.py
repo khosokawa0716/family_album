@@ -122,6 +122,7 @@ class TestPicturesUploadAPI:
         mock_user.id = user_id
         mock_user.family_id = family_id
         mock_user.user_name = f"test_user_{user_id}"
+        mock_user.nickname = None
         mock_user.type = user_type
         mock_user.status = status
         return mock_user

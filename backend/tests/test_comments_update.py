@@ -149,6 +149,7 @@ def test_update_comment_success():
     mock_updated_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_updated_comment.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_updated_comment.user.user_name = "test_user"
+    mock_updated_comment.user.nickname = None
 
     # データベースモック設定
     mock_db_session = setup_comment_mock(mock_comment, mock_updated_comment)
@@ -198,6 +199,7 @@ def test_update_comment_with_emoji():
     mock_updated_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_updated_comment.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_updated_comment.user.user_name = "test_user"
+    mock_updated_comment.user.nickname = None
 
     # データベースモック設定
     mock_db_session = setup_comment_mock(mock_comment, mock_updated_comment)
@@ -244,6 +246,7 @@ def test_update_comment_with_multiline():
     mock_updated_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_updated_comment.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_updated_comment.user.user_name = "test_user"
+    mock_updated_comment.user.nickname = None
 
     # データベースモック設定
     mock_db_session = setup_comment_mock(mock_comment, mock_updated_comment)
@@ -502,6 +505,7 @@ def test_update_comment_deleted_picture():
     mock_updated_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_updated_comment.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_updated_comment.user.user_name = "test_user"
+    mock_updated_comment.user.nickname = None
 
     # データベースモック設定
     mock_db_session = setup_comment_mock(mock_comment, mock_updated_comment)
@@ -569,6 +573,7 @@ def test_update_comment_response_format():
     mock_updated_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_updated_comment.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_updated_comment.user.user_name = "test_user"
+    mock_updated_comment.user.nickname = None
 
     # データベースモック設定
     mock_db_session = setup_comment_mock(mock_comment, mock_updated_comment)
@@ -621,6 +626,7 @@ def test_update_comment_updated_at_changed():
     mock_updated_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_updated_comment.update_date = new_update_date
     mock_updated_comment.user.user_name = "test_user"
+    mock_updated_comment.user.nickname = None
 
     # データベースモック設定
     mock_db_session = setup_comment_mock(mock_comment, mock_updated_comment)
@@ -671,6 +677,7 @@ def test_update_comment_created_at_unchanged():
     mock_updated_comment.create_date = original_create_date  # 同じ作成日時
     mock_updated_comment.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_updated_comment.user.user_name = "test_user"
+    mock_updated_comment.user.nickname = None
 
     # データベースモック設定
     mock_db_session = setup_comment_mock(mock_comment, mock_updated_comment)
@@ -720,6 +727,7 @@ def test_update_comment_idempotent():
     mock_updated_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_updated_comment.update_date = datetime(2024, 1, 2, 10, 0, 0)
     mock_updated_comment.user.user_name = "test_user"
+    mock_updated_comment.user.nickname = None
 
     # データベースモック設定
     mock_db_session = setup_comment_mock(mock_comment, mock_updated_comment)

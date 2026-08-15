@@ -41,6 +41,7 @@ def test_get_current_user_success(client):
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.user_name = "test_user"
+    mock_user.nickname = None
     mock_user.email = "test@example.com"
     mock_user.type = 0
     mock_user.family_id = 1

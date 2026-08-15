@@ -42,6 +42,7 @@ class TestPictureGroupsAPI:
         mock_user.id = user_id
         mock_user.family_id = family_id
         mock_user.user_name = f"test_user_{user_id}"
+        mock_user.nickname = None
         mock_user.type = 0
         mock_user.status = 1
         return mock_user
@@ -141,7 +142,7 @@ class TestPictureGroupsAPI:
 
             mock_query.all.side_effect = [
                 [group_row_a, group_row_b],  # 1回目: group一覧
-                [(pic1, "user_1"), (pic2, "user_1")]  # 2回目: pictures取得
+                [(pic1, "user_1", None, None), (pic2, "user_1", None, None)]  # 2回目: pictures取得
             ]
 
             self.setup_dependency_overrides(mock_db, mock_user)
@@ -186,7 +187,7 @@ class TestPictureGroupsAPI:
 
             mock_query.all.side_effect = [
                 [group_row],
-                [(pic1, "user_1"), (pic2, "user_1"), (pic3, "user_1")]
+                [(pic1, "user_1", None, None), (pic2, "user_1", None, None), (pic3, "user_1", None, None)]
             ]
 
             self.setup_dependency_overrides(mock_db, mock_user)
@@ -262,7 +263,7 @@ class TestPictureGroupsAPI:
             mock_query.outerjoin.return_value = mock_query
             mock_query.filter.return_value = mock_query
             mock_query.order_by.return_value = mock_query
-            mock_query.all.return_value = [(pic1, "user_1"), (pic2, "user_1")]
+            mock_query.all.return_value = [(pic1, "user_1", None, None), (pic2, "user_1", None, None)]
 
             self.setup_dependency_overrides(mock_db, mock_user)
 

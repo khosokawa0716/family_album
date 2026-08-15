@@ -105,6 +105,7 @@ def test_get_comments_success():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
     mock_user.user_name = "test_user"
 
     # 写真のモック
@@ -123,6 +124,7 @@ def test_get_comments_success():
     mock_comment1.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment1.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment1.user.user_name = "test_user"
+    mock_comment1.user.nickname = None
 
     mock_comment2 = MagicMock()
     mock_comment2.id = 2
@@ -133,6 +135,7 @@ def test_get_comments_success():
     mock_comment2.create_date = datetime(2024, 1, 1, 11, 0, 0)
     mock_comment2.update_date = datetime(2024, 1, 1, 11, 0, 0)
     mock_comment2.user.user_name = "test_user"
+    mock_comment2.user.nickname = None
 
     # データベースモック
     mock_db_session = MagicMock()
@@ -181,6 +184,7 @@ def test_get_comments_empty_list():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # 写真のモック
     mock_picture = MagicMock()
@@ -229,6 +233,7 @@ def test_get_comments_sorted_by_create_date():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # 写真のモック
     mock_picture = MagicMock()
@@ -243,6 +248,7 @@ def test_get_comments_sorted_by_create_date():
     mock_comment_old.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment_old.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment_old.user.user_name = "test_user"
+    mock_comment_old.user.nickname = None
 
     mock_comment_new = MagicMock()
     mock_comment_new.id = 2
@@ -250,6 +256,7 @@ def test_get_comments_sorted_by_create_date():
     mock_comment_new.create_date = datetime(2024, 1, 1, 12, 0, 0)
     mock_comment_new.update_date = datetime(2024, 1, 1, 12, 0, 0)
     mock_comment_new.user.user_name = "test_user"
+    mock_comment_new.user.nickname = None
 
     # データベースモック
     mock_db_session = MagicMock()
@@ -295,6 +302,7 @@ def test_get_comments_with_user_info():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # 写真のモック
     mock_picture = MagicMock()
@@ -312,6 +320,7 @@ def test_get_comments_with_user_info():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "comment_author"
+    mock_comment.user.nickname = None
 
     # データベースモック
     mock_db_session = MagicMock()
@@ -374,6 +383,7 @@ def test_get_comments_other_family_picture():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # データベースモック（他家族の写真は見つからない状態にする）
     mock_db_session = MagicMock()
@@ -428,6 +438,7 @@ def test_get_comments_nonexistent_picture():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # データベースモック（写真が見つからない）
     mock_db_session = MagicMock()
@@ -460,6 +471,7 @@ def test_get_comments_deleted_picture():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # データベースモック（削除済み写真はstatus=1フィルタで除外されるためNoneが返る）
     mock_db_session = MagicMock()
@@ -493,6 +505,7 @@ def test_get_comments_invalid_picture_id():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # dependency overrides
     app.dependency_overrides[get_current_user] = lambda: mock_user
@@ -512,6 +525,7 @@ def test_get_comments_negative_picture_id():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # dependency overrides
     app.dependency_overrides[get_current_user] = lambda: mock_user
@@ -535,6 +549,7 @@ def test_get_comments_exclude_deleted():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # 写真のモック
     mock_picture = MagicMock()
@@ -550,6 +565,7 @@ def test_get_comments_exclude_deleted():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     # データベースモック
     mock_db_session = MagicMock()
@@ -610,6 +626,7 @@ def test_get_comments_response_format():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # 写真のモック
     mock_picture = MagicMock()
@@ -627,6 +644,7 @@ def test_get_comments_response_format():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     # データベースモック
     mock_db_session = MagicMock()
@@ -675,6 +693,7 @@ def test_get_comments_datetime_format():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # 写真のモック
     mock_picture = MagicMock()
@@ -693,6 +712,7 @@ def test_get_comments_datetime_format():
     mock_comment.create_date = test_datetime
     mock_comment.update_date = test_datetime
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     # データベースモック
     mock_db_session = MagicMock()
@@ -745,6 +765,7 @@ def test_get_comments_sql_injection_protection():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # dependency overrides
     app.dependency_overrides[get_current_user] = lambda: mock_user
@@ -765,6 +786,7 @@ def test_get_comments_xss_content_escaping():
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.family_id = 1
+    mock_user.nickname = None
 
     # 写真のモック
     mock_picture = MagicMock()
@@ -783,6 +805,7 @@ def test_get_comments_xss_content_escaping():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     # データベースモック
     mock_db_session = MagicMock()

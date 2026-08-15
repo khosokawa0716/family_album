@@ -112,6 +112,7 @@ def test_post_comment_success():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     # データベースモック
     mock_db_session = MagicMock()
@@ -194,6 +195,7 @@ def test_post_comment_with_special_characters():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     mock_comment_query = MagicMock()
     mock_comment_join_query = MagicMock()
@@ -263,6 +265,7 @@ def test_post_comment_response_format():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     mock_comment_query = MagicMock()
     mock_comment_join_query = MagicMock()
@@ -336,6 +339,7 @@ def test_post_comment_auto_timestamps():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     mock_comment_query = MagicMock()
     mock_comment_join_query = MagicMock()
@@ -666,6 +670,7 @@ def test_post_comment_sql_injection_protection():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     mock_comment_query = MagicMock()
     mock_comment_join_query = MagicMock()
@@ -739,6 +744,7 @@ def test_post_comment_xss_content_handling():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     mock_comment_query = MagicMock()
     mock_comment_join_query = MagicMock()
@@ -815,6 +821,7 @@ def test_post_comment_database_transaction():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     mock_comment_query = MagicMock()
     mock_comment_join_query = MagicMock()
@@ -887,6 +894,7 @@ def test_post_comment_concurrent_access():
     mock_comment.create_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.update_date = datetime(2024, 1, 1, 10, 0, 0)
     mock_comment.user.user_name = "test_user"
+    mock_comment.user.nickname = None
 
     mock_comment_query = MagicMock()
     mock_comment_join_query = MagicMock()
