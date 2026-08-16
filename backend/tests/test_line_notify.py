@@ -83,7 +83,7 @@ class TestBuildUploadNotificationMessage:
             "新しい写真が投稿されました\n"
             "タイトル: 海水浴\n"
             "投稿者: たろう\n"
-            "http://album.local/photo/detail/abc-123"
+            "http://album.local/photo/detail/abc-123#openExternalBrowser=1"
         )
 
     def test_multiple_photos_shows_count_in_header(self, monkeypatch):
@@ -140,5 +140,5 @@ class TestBuildUploadNotificationMessage:
             group_id="abc-123",
         )
 
-        assert "http://album.local/photo/detail/abc-123" in message
+        assert "http://album.local/photo/detail/abc-123#openExternalBrowser=1" in message
         assert "http://album.local//photo" not in message

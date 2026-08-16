@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { authService } from "@/services/auth";
+import { ApiError } from "@/lib/api/client";
 
 interface User {
   id: number;
@@ -36,11 +37,16 @@ export const useAuth = () => {
       setUser(userData);
       setIsAuthenticated(true);
       return true;
-    } catch {
+    } catch (err) {
       setIsAuthenticated(false);
       setUser(null);
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("user");
+      // 401（トークン自体が無効・期限切れ）のときだけ保存済みのトークンを破棄する。
+      // ネットワーク不調等の一時的な失敗まで破棄すると、再アクセス時に
+      // 有効なトークンがあるのに毎回ログインを要求することになってしまう。
+      if (err instanceof ApiError && err.status === 401) {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("user");
+      }
       return false;
     } finally {
       setIsLoading(false);

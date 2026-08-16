@@ -45,7 +45,10 @@ def build_upload_notification_message(
 
     frontend_url = os.getenv("FRONTEND_URL")
     if frontend_url:
-        lines.append(f"{frontend_url.rstrip('/')}/photo/detail/{group_id}")
+        # #openExternalBrowser=1 を付けることで、LINEアプリ内蔵ブラウザではなく端末の
+        # 標準ブラウザで開かせる。内蔵ブラウザはタップごとに保存領域が独立しており、
+        # ログイン状態（localStorage）を維持できないため。
+        lines.append(f"{frontend_url.rstrip('/')}/photo/detail/{group_id}#openExternalBrowser=1")
     else:
         logger.info("FRONTEND_URL is not set; skipping detail URL in LINE notification")
 
