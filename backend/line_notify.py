@@ -22,7 +22,6 @@ def build_upload_notification_message(
     title: Optional[str],
     user_name: Optional[str],
     nickname: Optional[str],
-    group_id: str,
 ) -> str:
     """写真・動画アップロード時のLINE通知メッセージを組み立てる。
 
@@ -42,15 +41,6 @@ def build_upload_notification_message(
         lines.append(f"タイトル: {title.strip()}")
 
     lines.append(f"投稿者: {get_display_name(user_name, nickname)}")
-
-    frontend_url = os.getenv("FRONTEND_URL")
-    if frontend_url:
-        # #openExternalBrowser=1 を付けることで、LINEアプリ内蔵ブラウザではなく端末の
-        # 標準ブラウザで開かせる。内蔵ブラウザはタップごとに保存領域が独立しており、
-        # ログイン状態（localStorage）を維持できないため。
-        lines.append(f"{frontend_url.rstrip('/')}/photo/detail/{group_id}#openExternalBrowser=1")
-    else:
-        logger.info("FRONTEND_URL is not set; skipping detail URL in LINE notification")
 
     return "\n".join(lines)
 
