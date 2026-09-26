@@ -67,55 +67,45 @@ class TestGetDisplayName:
 
 
 class TestBuildUploadNotificationMessage:
-    def test_single_photo_with_title_and_url(self, monkeypatch):
-        monkeypatch.setenv("FRONTEND_URL", "http://album.local")
-
+    def test_single_photo_with_title(self):
         message = build_upload_notification_message(
             media_type="photo",
             count=1,
             title="海水浴",
             user_name="taro_yamada",
             nickname="たろう",
-            group_id="abc-123",
         )
 
         assert message == (
             "新しい写真が投稿されました\n"
             "タイトル: 海水浴\n"
-            "投稿者: たろう\n"
-            "http://album.local/photo/detail/abc-123#openExternalBrowser=1"
+            "投稿者: たろう"
         )
 
-    def test_multiple_photos_shows_count_in_header(self, monkeypatch):
-        monkeypatch.delenv("FRONTEND_URL", raising=False)
-
+    def test_multiple_photos_shows_count_in_header(self):
         message = build_upload_notification_message(
             media_type="photo",
             count=3,
             title=None,
             user_name="taro_yamada",
             nickname=None,
-            group_id="abc-123",
         )
 
         assert message == "写真が3枚投稿されました\n投稿者: taro_yamada"
 
-    def test_video_header_ignores_count(self, monkeypatch):
-        monkeypatch.delenv("FRONTEND_URL", raising=False)
-
+    def test_video_header_ignores_count(self):
         message = build_upload_notification_message(
             media_type="video",
             count=1,
             title=None,
             user_name="taro_yamada",
             nickname=None,
-            group_id="abc-123",
         )
 
         assert message.startswith("新しい動画が投稿されました")
 
-    def test_omits_url_when_frontend_url_not_set(self, monkeypatch):
-        monkeypatch.delenv("FRONTEND_URL", raising=False)
+    def test_does_not_include_url(self, monkeypatch):
+        monkeypatch.setenv("FRONTEND_URL", "http://album.local")
 
         message = build_upload_notification_message(
             media_type="photo",
@@ -123,22 +113,6 @@ class TestBuildUploadNotificationMessage:
             title=None,
             user_name="taro_yamada",
             nickname=None,
-            group_id="abc-123",
         )
 
         assert "http" not in message
-
-    def test_strips_trailing_slash_from_frontend_url(self, monkeypatch):
-        monkeypatch.setenv("FRONTEND_URL", "http://album.local/")
-
-        message = build_upload_notification_message(
-            media_type="photo",
-            count=1,
-            title=None,
-            user_name="taro_yamada",
-            nickname=None,
-            group_id="abc-123",
-        )
-
-        assert "http://album.local/photo/detail/abc-123#openExternalBrowser=1" in message
-        assert "http://album.local//photo" not in message

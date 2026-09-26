@@ -1,6 +1,12 @@
 const DEFAULT_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
 
 function redirectToLogin(): void {
+  // ログインページ自身では遷移しない。期限切れトークンでの認証確認（/users/me）や
+  // ログイン失敗で401になった際に遷移すると、?name=&pass= がredirectパラメータの中に
+  // 埋もれて入力欄に反映されなくなったり、エラー表示が消えたりするため。
+  if (window.location.pathname.startsWith("/login")) {
+    return;
+  }
   const current = `${window.location.pathname}${window.location.search}`;
   window.location.href = `/login?redirect=${encodeURIComponent(current)}`;
 }

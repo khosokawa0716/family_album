@@ -781,7 +781,6 @@ async def upload_picture(
                 title=clean_title,
                 user_name=current_user.user_name,
                 nickname=current_user.nickname,
-                group_id=group_id,
             )
             await send_line_broadcast(message)
         except Exception as e:
@@ -1061,7 +1060,6 @@ async def upload_video(
                 title=clean_title,
                 user_name=current_user.user_name,
                 nickname=current_user.nickname,
-                group_id=group_id,
             )
             await send_line_broadcast(message)
         except Exception as e:
